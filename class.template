@@ -1,0 +1,14 @@
+# {{ page_title_prefix }}{{ device_class }}
+<h2>
+    <a href="https://pcdshub.github.io/pcdsdevices/master/generated/{{device_class}}.html" target="_blank">
+        {{device_class}}
+    </a>
+</h2>
+
+<!-- Show child pages -->
+<p>
+  <ac:structured-macro ac:macro-id="37d59fe6-8722-498d-a700-739dc63025a6" ac:name="children" ac:schema-version="2">
+    <ac:parameter ac:name="all">true</ac:parameter>
+    <ac:parameter ac:name="sort">title</ac:parameter>
+  </ac:structured-macro>
+</p>

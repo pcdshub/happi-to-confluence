@@ -1,0 +1,48 @@
+# {{ page_title_prefix }}{{ device_name }}
+<h2>{{device_name}} ({{device_class}})</h2>
+<pre>
+{{device_class_doc | e}}
+</pre>
+<p>
+  <ac:structured-macro ac:name="include" ac:schema-version="1">
+    <ac:parameter ac:name="">
+      <ac:link>
+        <ri:page ri:content-title="{{ page_title_prefix }}{{ device_name }}{{ user_page_suffix }}"/>
+      </ac:link>
+    </ac:parameter>
+  </ac:structured-macro>
+</p>
+<h2>Happi Information</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Key</th>
+                <th>Value</th>
+            </tr>
+        </thead>
+        <tbody>
+{% for key, value in happi_item.items() %}
+    {% if value %}
+            <tr>
+                <td>{{ key | e }}</td>
+                <td>{{ value | e }}</td>
+            </tr>
+    {% endif %}
+{% endfor %}
+        </tbody>
+    </table>
+
+{% if relevant_pvs %}
+<h2>Relevant PVs</h2>
+<p>
+{% for pv in relevant_pvs | sort %}
+  <ul>
+    <li>
+        <a href="https://pswww.slac.stanford.edu/archiveviewer/retrieval/ui/viewer/archViewer.html?pv={{ pv }}">
+            {{ pv }}
+        </a>
+    </li>
+  </ul>
+{% endfor %}
+</p>
+{% endif %}

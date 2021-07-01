@@ -1,0 +1,16 @@
+# {{ page_title_prefix }}{{ device_name }} - User
+
+<p>
+  <ac:structured-macro ac:name="toc" ac:schema-version="1"/>
+</p>
+
+{% for page in related_pages %}
+    <h2>Confluence page: {{ page.content.title }}</h2>
+    <ac:structured-macro ac:name="include" ac:schema-version="1">
+      <ac:parameter ac:name="">
+        <ac:link>
+          <ri:page ri:space-key="{{ page.space }}" ri:content-title="{{ page.content.title }}"/>
+        </ac:link>
+      </ac:parameter>
+    </ac:structured-macro>
+{% endfor %}
