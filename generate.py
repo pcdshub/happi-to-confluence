@@ -1,19 +1,12 @@
-import copy
-import getpass
-import logging
-import json
-import os
 import inspect
-import pathlib
-import sys
-import functools
-import pcdsutils.utils
-import requests.exceptions
+import json
+import logging
+import os
 
 import jinja2
-import lxml
-import lxml.etree
+import pcdsutils.utils
 import requests
+import requests.exceptions
 from atlassian import Confluence
 
 logging.basicConfig(level="INFO")
@@ -55,11 +48,13 @@ def get_md_for_confluence(md):
 
 def create_client() -> Confluence:
     s = requests.Session()
-    s.headers['Authorization'] = f"Bearer {os.environ['CONFLUENCE_TOKEN']}"
+    s.headers["Authorization"] = f"Bearer {os.environ['CONFLUENCE_TOKEN']}"
 
     client = Confluence(
-        (os.environ.get("CONFLUENCE_URL", "") or
-         "https://confluence-test02.slac.stanford.edu"),
+        (
+            os.environ.get("CONFLUENCE_URL", "")
+            or "https://confluence-test02.slac.stanford.edu"
+        ),
         session=s,
     )
     return client
@@ -80,9 +75,7 @@ class NamedTemplate:
         return self.title.render(**kwargs), self.template.render(**kwargs)
 
 
-def render_pages(
-    happi_item_name, happi_item, page_to_children, parent_id, state=None
-):
+def render_pages(happi_item_name, happi_item, page_to_children, parent_id, state=None):
     if not page_to_children:
         return
 
@@ -100,7 +93,8 @@ def render_pages(
         related_query = f"type = page and (title ~ {happi_item_name})"
         related_pages = client.cql(related_query, limit=5).get("results", [])
         related_pages = [
-            page for page in related_pages
+            page
+            for page in related_pages
             if not any(
                 should_skip(page["content"]["title"])
                 for should_skip in related_title_skips
@@ -110,7 +104,9 @@ def render_pages(
             space = page["content"]["_expandable"]["space"]
             page["space"] = space.split("/")[-1]
         state["related_pages"][happi_item_name] = related_pages
-        logger.debug("Found %d related pages for %s", len(related_pages), happi_item_name)
+        logger.debug(
+            "Found %d related pages for %s", len(related_pages), happi_item_name
+        )
 
     render_kw = dict(
         device_name=happi_item_name,
@@ -154,12 +150,8 @@ def render_pages(
             except requests.exceptions.HTTPError as ex:
                 if "A page with this title already exists" not in str(ex):
                     raise
-                logger.info("Page already exists: %s; not overwriting",
-                            title)
-                page_info = client.get_page_by_title(
-                    space=space,
-                    title=title
-                )
+                logger.info("Page already exists: %s; not overwriting", title)
+                page_info = client.get_page_by_title(space=space, title=title)
 
         # for key, value in properties.items():
         #     client.set_page_property(
@@ -169,15 +161,18 @@ def render_pages(
 
         state[page] = page_info
         render_pages(
-            happi_item_name, happi_item, children, parent_id=page_info["id"],
-            state=state
+            happi_item_name,
+            happi_item,
+            children,
+            parent_id=page_info["id"],
+            state=state,
         )
 
     return state
 
 
 with open("happi_info.json", "rt") as fp:
-	happi_info = json.load(fp)
+    happi_info = json.load(fp)
 
 
 hierarchy = {
