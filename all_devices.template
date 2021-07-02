@@ -1,0 +1,41 @@
+# title: Happi Devices by Name
+# label: auto-generated
+<h2>Happi Devices</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Class</th>
+                <th>Notes</th>
+                <th>Z</th>
+            </tr>
+        </thead>
+        <tbody>
+{% for item_name, info in all_item_state.items() | sort%}
+{% if not item_name.startswith("_") %}
+        <tr>
+            <td>
+              <ac:link>
+                <ri:page ri:content-title="{{ info["device.template"]["title"] }} "/>
+              </ac:link>
+            </td>
+            <td>
+    {% if "class.template" in info %}
+              <ac:link>
+                <ri:page ri:content-title="{{ info["class.template"]["title"] }} "/>
+              </ac:link>
+    {% endif %}
+            </td>
+            <td>
+              <ac:link>
+                <ri:page ri:content-title="{{ info["user.template"]["title"] }} "/>
+              </ac:link>
+            </td>
+            <td>
+                {{ info.happi_item.z }}
+            </td>
+        </tr>
+{% endif %}
+{% endfor %}
+        </tbody>
+    </table>

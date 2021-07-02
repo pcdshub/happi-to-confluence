@@ -1,5 +1,7 @@
-# {{ page_title_prefix }}{{ device_name }} - User
-
+# title: {{ device_name }}{{ user_page_suffix }}
+# title: {{ device_name }}{{ user_page_suffix }}{{ page_title_marker }}
+# label: auto-generated
+# label: no-overwrite
 <p>
   <ac:structured-macro ac:name="toc" ac:schema-version="1"/>
 </p>

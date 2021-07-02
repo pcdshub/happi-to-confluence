@@ -8,6 +8,7 @@ import pcdsutils.utils
 import requests
 import requests.exceptions
 from atlassian import Confluence
+from typing import List, Optional, Tuple
 
 logging.basicConfig(level="INFO")
 
@@ -15,16 +16,17 @@ logger = logging.getLogger(__name__)
 logger.setLevel("DEBUG")
 
 # space = "PCDS"
-space = "~klauer"
-documentation_root_title = "Typhos Documentation Root"
-page_title_prefix = "Typhos - "
-user_page_suffix = " - User"
-related_title_skips = (
-    lambda title: title.startswith(page_title_prefix),
-    lambda title: "checkout" in title.lower(),
+SPACE = "~klauer"
+DOCUMENTATION_ROOT_TITLE = "Typhos Documentation Root"
+PAGE_TITLE_MARKER = " (Typhos)"
+USER_PAGE_SUFFIX = " - Notes"
+RELATED_TITLE_SKIPS = (
+    lambda title, page: PAGE_TITLE_MARKER in title,
+    lambda title, page: "checkout" in title.lower(),
+    lambda title, page: HAPPI_TO_CONFLUENCE_LABEL in page["labels"]
 )
-
-# autogen label
+HAPPI_TO_CONFLUENCE_LABEL = "happi-to-confluence"
+NO_OVERWRITE_LABEL = "no-overwrite"
 
 
 def wrap_html(html):
@@ -62,78 +64,145 @@ def create_client() -> Confluence:
 
 class NamedTemplate:
     filename: str
-    title: jinja2.Template
+    titles: List[jinja2.Template]
     template: jinja2.Template
+    labels: List[str]
 
     def __init__(self, fn: str):
         self.filename = fn
+        self.labels = [HAPPI_TO_CONFLUENCE_LABEL]
         with open(fn, "rt") as fp:
-            self.title = jinja2.Template(fp.readline().strip("# "))
-            self.template = jinja2.Template(fp.read())
+            contents = fp.read().splitlines()
 
-    def render(self, **kwargs):
-        return self.title.render(**kwargs), self.template.render(**kwargs)
+        title_lines = []
+        for idx, line in enumerate(contents):
+            if line.startswith("# "):
+                line = line.strip("# ")
+                directive, data = (item.strip() for item in line.split(":", 1))
+                if directive == "title":
+                    title_lines.append(data)
+                elif directive == "label":
+                    self.labels.append(data)
+                else:
+                    raise ValueError(f"Unknown directive: {directive} ({data})")
+            else:
+                contents = "\n".join(contents[idx:])
+                break
+
+        if not title_lines:
+            raise ValueError(f"Template invalid: {fn} has no filename lines")
+
+        self.titles = [jinja2.Template(title) for title in title_lines]
+        self.template = jinja2.Template(contents)
+
+    def render(self, **kwargs) -> Tuple[List[str], str]:
+        return (
+            [title.render(**kwargs) for title in self.titles],
+            self.template.render(**kwargs)
+        )
 
 
-def render_pages(happi_item_name, happi_item, page_to_children, parent_id, state=None):
-    if not page_to_children:
-        return
+def get_page_labels(client, page_id):
+    return {
+        label["name"]: label
+        for label in client.get_page_labels(page_id)["results"]
+    }
 
-    state = state or {"related_pages": {}}
+
+def get_per_item_render_kwargs(happi_item_name, happi_item, state):
+    device_class_name = happi_item["device_class"]
     try:
         cls = pcdsutils.utils.import_helper(device_class_name)
     except Exception:
         device_class_doc = "None"
+        device_class_name = device_class_name.split(".")[-1]
     else:
         device_class_doc = inspect.getdoc(cls)
+        device_class_name = cls.__name__
 
-    if happi_item_name in state["related_pages"]:
-        related_pages = state["related_pages"][happi_item_name]
+    if happi_item_name in state.setdefault("_related_pages", {}):
+        related_pages = state["_related_pages"][happi_item_name]
     else:
         related_query = f"type = page and (title ~ {happi_item_name})"
         related_pages = client.cql(related_query, limit=5).get("results", [])
+        for page in related_pages:
+            page_api_space = page["content"]["_expandable"]["space"]
+            page["space"] = page_api_space.split("/")[-1]
+            page["labels"] = get_page_labels(client, page["content"]["id"])
+
         related_pages = [
             page
             for page in related_pages
             if not any(
-                should_skip(page["content"]["title"])
-                for should_skip in related_title_skips
+                should_skip(page["content"]["title"], page)
+                for should_skip in RELATED_TITLE_SKIPS
             )
         ]
-        for page in related_pages:
-            space = page["content"]["_expandable"]["space"]
-            page["space"] = space.split("/")[-1]
-        state["related_pages"][happi_item_name] = related_pages
+        state["_related_pages"][happi_item_name] = related_pages
         logger.debug(
             "Found %d related pages for %s", len(related_pages), happi_item_name
         )
 
-    render_kw = dict(
+    return dict(
+        identifier=happi_item_name,
         device_name=happi_item_name,
         happi_item=happi_item,
         device_class=device_class_name,
         device_class_doc=device_class_doc,
         relevant_pvs=happi_info["metadata"]["item_to_records"].get(happi_item_name, []),
-        page_title_prefix=page_title_prefix,
-        user_page_suffix=user_page_suffix,
+        page_title_marker=PAGE_TITLE_MARKER,
+        user_page_suffix=USER_PAGE_SUFFIX,
         related_pages=related_pages,
+        state=state,
     )
 
-    properties = dict(
-        device_name=happi_item_name,
-        # happi_item=happi_item,
-        device_class=device_class_name,
+
+def get_view_render_kwargs(view, view_state, all_item_state):
+    return dict(
+        identifier=view.filename,
+        all_item_state=all_item_state,
+        view_state=view_state,
     )
 
-    for page, children in page_to_children.items():
-        if not isinstance(page, NamedTemplate):
+
+def render_pages(
+    client: Confluence,
+    page_to_children,
+    parent: dict,
+    space: str,
+    render_kw: dict,
+    state: dict,
+):
+    if not page_to_children:
+        return
+
+    parent_id = parent["id"]
+
+    for page_template, children in page_to_children.items():
+        if not isinstance(page_template, NamedTemplate):
             continue
-        logger.info("Rendering %s", page.filename)
+        logger.info("Rendering %s", page_template.filename)
 
         options = children.get("_options", {})
-        title, source = page.render(**render_kw)
+        titles, source = page_template.render(**render_kw)
+        for title in titles:
+            existing_page = client.get_page_by_title(title=title, space=space)
+            if existing_page:
+                labels = get_page_labels(client, existing_page["id"])
+                if HAPPI_TO_CONFLUENCE_LABEL in labels:
+                    # OK, even if it exists, this is our page
+                    logger.info("Found a page we previously generated: %s (%s)",
+                                title, list(labels))
+                    break
+            if not existing_page:
+                logger.error("Available title: %s", title)
+                labels = {}
+                break
+        else:
+            logger.error("No available titles? %s", titles)
+            continue
 
-        if options.get("overwrite", True):
+        if options.get("overwrite", True) and NO_OVERWRITE_LABEL not in labels:
             page_info = client.update_or_create(
                 parent_id=parent_id,
                 title=title,
@@ -153,51 +222,108 @@ def render_pages(happi_item_name, happi_item, page_to_children, parent_id, state
                 logger.info("Page already exists: %s; not overwriting", title)
                 page_info = client.get_page_by_title(space=space, title=title)
 
+        for label in page_template.labels:
+            client.set_page_label(page_info["id"], label)
+
         # for key, value in properties.items():
         #     client.set_page_property(
         #         page_info["id"],
         #         dict(key=key, value=value, version=dict(number=1, minorEdit=True, hidden=True)),
         #     )
 
-        state[page] = page_info
+        # state[title] = (page_template, page_info)
+
+        identifier = render_kw["identifier"]
+        identifier_state = state.setdefault(identifier, {})
+        page_info["_template_"] = page_template
+        identifier_state[page_template.filename] = page_info
+
         render_pages(
-            happi_item_name,
-            happi_item,
+            client,
             children,
-            parent_id=page_info["id"],
+            render_kw=render_kw,
+            parent=page_info,
             state=state,
+            space=space,
         )
 
     return state
 
 
+# if "happi_info" not in globals():
+#     # ipython -i ... yeah
 with open("happi_info.json", "rt") as fp:
     happi_info = json.load(fp)
 
 
-hierarchy = {
+per_device_hierarchy = {
     NamedTemplate("class.template"): {
         NamedTemplate("device.template"): {
             NamedTemplate("user.template"): {
                 "_options": {
-                    # "overwrite": False,
+                    "overwrite": False,
                 },
             }
         }
     }
 }
 
+matching_name_and_class_hierarchy = {
+    NamedTemplate("device.template"): {
+        NamedTemplate("user.template"): {
+            "_options": {
+                "overwrite": False,
+            },
+        }
+    }
+}
+
+views = {
+    NamedTemplate("all_devices.template"): {
+    },
+}
+
 client = create_client()
 
-root_id = client.get_page_id(space=space, title=documentation_root_title)
-if root_id is None:
+root_page = client.get_page_by_title(space=SPACE, title=DOCUMENTATION_ROOT_TITLE)
+if root_page is None:
     raise RuntimeError("No root page")
 
 happi_items = happi_info["metadata"]["item_to_metadata"]
 
-state = {}
-for idx, (name, happi_item) in enumerate(happi_items.items()):
-    device_class_name = happi_item["device_class"]
-    state[name] = render_pages(name, happi_item, hierarchy, parent_id=root_id)
-    if idx == 10:
-        break
+all_item_state = {}
+for idx, (happi_name, happi_item) in enumerate(happi_items.items()):
+    render_kw = get_per_item_render_kwargs(
+        happi_name, happi_item, state=all_item_state
+    )
+
+    if happi_name.lower() == render_kw["device_class"].lower():
+        # In cases of devices like AT1K4, its class and happi name are
+        # the same; so we can't make it a subpage.. hmm
+        to_render = matching_name_and_class_hierarchy
+    else:
+        to_render = per_device_hierarchy
+
+    # properties = dict(
+    #     device_name=happi_item_name,
+    #     # happi_item=happi_item,
+    #     device_class=device_class_name,
+    # )
+    render_pages(
+        client=client, page_to_children=to_render,
+        render_kw=render_kw, parent=root_page, space=SPACE,
+        state=all_item_state,
+    )
+    all_item_state[happi_name]["happi_item"] = happi_item
+
+
+view_state = {}
+for view, view_children in views.items():
+    render_kw = get_view_render_kwargs(
+        view=view, all_item_state=all_item_state, view_state=view_state
+    )
+    render_pages(
+        client=client, page_to_children={view: view_children},
+        render_kw=render_kw, parent=root_page, space=SPACE,
+        state=view_state,
+    )

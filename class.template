@@ -1,4 +1,6 @@
-# {{ page_title_prefix }}{{ device_class }}
+# title: {{ device_class }}
+# title: {{ device_class }}{{ page_title_marker }}
+# label: auto-generated
 <h2>
     <a href="https://pcdshub.github.io/pcdsdevices/master/generated/{{device_class}}.html" target="_blank">
         {{device_class}}

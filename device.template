@@ -1,4 +1,6 @@
-# {{ page_title_prefix }}{{ device_name }}
+# title: {{ device_name }}
+# title: {{ device_name }}{{ page_title_marker}}
+# label: auto-generated
 <h2>{{device_name}} ({{device_class}})</h2>
 <pre>
 {{device_class_doc | e}}
