@@ -24,7 +24,7 @@
         </thead>
         <tbody>
 {% for key, value in happi_item.items() %}
-    {% if value %}
+    {% if key not in ("_whatrecord", ) and value %}
             <tr>
                 <td>{{ key | e }}</td>
                 <td>{{ value | e }}</td>
@@ -34,17 +34,32 @@
         </tbody>
     </table>
 
-{% if relevant_pvs %}
-<h2>Relevant PVs</h2>
-<p>
-{% for pv in relevant_pvs | sort %}
-  <ul>
-    <li>
-        <a href="https://pswww.slac.stanford.edu/archiveviewer/retrieval/ui/viewer/archViewer.html?pv={{ pv }}">
-            {{ pv }}
-        </a>
-    </li>
-  </ul>
-{% endfor %}
-</p>
+{% if relevant_pvs_by_kind %}
+  <h2>Relevant PVs</h2>
+  <table id="related_records">
+    <thead>
+      <th>PV</th>
+      <th>Attribute</th>
+      <th>Kind</th>
+    </thead>
+    <tbody>
+    {% for kind, pvs in relevant_pvs_by_kind.items() %}
+      {% for pvinfo in pvs %}
+        <tr>
+          <td class="pv">
+            <a href="https://pswww.slac.stanford.edu/archiveviewer/retrieval/ui/viewer/archViewer.html?pv={{ pvinfo.name | e }}">
+                {{ pvinfo.name }}
+            </a>
+          </td>
+          <td class="pv">
+            {{ pvinfo.signal }}
+          </td>
+          <td class="pv">
+            {{ kind }}
+          </td>
+        </tr>
+      {% endfor %}
+    {% endfor %}
+    </tbody>
+  </table>
 {% endif %}

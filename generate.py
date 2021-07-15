@@ -143,13 +143,25 @@ def get_per_item_render_kwargs(happi_item_name, happi_item, state):
             "Found %d related pages for %s", len(related_pages), happi_item_name
         )
 
+    relevant_pvs = happi_item.get("_whatrecord", {}).get("records", [])
+    if not relevant_pvs:
+        pvs_by_kind = {}
+    else:
+        pvs_by_kind = {
+            "hinted": [],
+            "normal": [],
+        }
+        for pv in sorted(relevant_pvs, key=lambda pv: pv["name"]):
+            kind = pv["kind"].replace("Kind.", "")
+            pvs_by_kind.setdefault(kind, []).append(pv)
+
     return dict(
         identifier=happi_item_name,
         device_name=happi_item_name,
         happi_item=happi_item,
         device_class=device_class_name,
         device_class_doc=device_class_doc,
-        relevant_pvs=happi_info["metadata"]["item_to_records"].get(happi_item_name, []),
+        relevant_pvs_by_kind=pvs_by_kind,
         page_title_marker=PAGE_TITLE_MARKER,
         user_page_suffix=USER_PAGE_SUFFIX,
         related_pages=related_pages,
@@ -287,7 +299,8 @@ root_page = client.get_page_by_title(space=SPACE, title=DOCUMENTATION_ROOT_TITLE
 if root_page is None:
     raise RuntimeError("No root page")
 
-happi_items = happi_info["metadata"]["item_to_metadata"]
+# Keys for the happi plugin are the happi item names
+happi_items = happi_info["metadata_by_key"]
 
 all_item_state = {}
 for idx, (happi_name, happi_item) in enumerate(happi_items.items()):
