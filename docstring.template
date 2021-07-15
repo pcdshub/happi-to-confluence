@@ -1,0 +1,34 @@
+# title: {{ happi_item.name }} docstring
+{%- for section, section_items in sections.items() %}
+    {%- if section_items %}
+        <h3>{{ section }}</h3>
+        {%- if section == "Parameters" or section == "Attributes" %}
+            <table>
+                <thead>
+                    <th>Parameter</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                    {% if section == "Parameters" %}<th>Value</th>{% endif %}
+                </thead>
+                <tbody>
+                {%- for param in section_items %}
+                    <tr>
+                        <td>{{ param.name }}</td>
+                        <td>{{ param.type }}</td>
+                        <td><pre>{{ param.desc | join("\n") }}</pre></td>
+                        {% if section == "Parameters" %}
+                        <td>{{ kwargs.get(param.name, "(default)") }}</td>
+                        {% endif %}
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        {%- else %}
+            <pre>
+{%- for item in section_items -%}
+    {{ item }}
+{% endfor -%}
+</pre>
+        {%- endif %}
+    {%- endif %}
+{%- endfor %}

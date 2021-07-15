@@ -5,6 +5,8 @@ import os
 from typing import List, Tuple
 
 import jinja2
+import numpydoc
+import numpydoc.docscrape
 import pcdsutils.utils
 import requests
 import requests.exceptions
@@ -102,11 +104,36 @@ class NamedTemplate:
         )
 
 
+docstring_template = NamedTemplate("docstring.template")
+
+
 def get_page_labels(client, page_id):
     return {
         label["name"]: label
         for label in client.get_page_labels(page_id)["results"]
     }
+
+
+def best_effort_get_args(cls, happi_item):
+    sig = inspect.signature(cls)
+    kwargs = {
+        param.name: param.default
+        for param in sig.parameters.values()
+        if param.default is not param.empty
+    }
+    try:
+        bound = sig.bind(
+            *happi_item.get("args", []),
+            **happi_item.get("kwargs", {})
+        )
+    except TypeError:
+        ...
+    else:
+        for arg, value in bound.arguments.items():
+            kwargs.setdefault(arg, value)
+
+    kwargs.update(**happi_item.get("kwargs"))
+    return kwargs
 
 
 def get_per_item_render_kwargs(happi_item_name, happi_item, state):
@@ -117,8 +144,14 @@ def get_per_item_render_kwargs(happi_item_name, happi_item, state):
         device_class_doc = "None"
         device_class_name = device_class_name.split(".")[-1]
     else:
-        device_class_doc = inspect.getdoc(cls)
+        device_class_doc = inspect.getdoc(cls) or "None"
         device_class_name = cls.__name__
+
+    _, rendered_docstring = docstring_template.render(
+        sections=dict(numpydoc.docscrape.NumpyDocString(device_class_doc)),
+        kwargs=best_effort_get_args(cls, happi_item),
+        happi_item=happi_item,
+    )
 
     if happi_item_name in state.setdefault("_related_pages", {}):
         related_pages = state["_related_pages"][happi_item_name]
@@ -160,7 +193,7 @@ def get_per_item_render_kwargs(happi_item_name, happi_item, state):
         device_name=happi_item_name,
         happi_item=happi_item,
         device_class=device_class_name,
-        device_class_doc=device_class_doc,
+        device_class_doc=rendered_docstring,
         relevant_pvs_by_kind=pvs_by_kind,
         page_title_marker=PAGE_TITLE_MARKER,
         user_page_suffix=USER_PAGE_SUFFIX,

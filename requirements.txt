@@ -1,0 +1,5 @@
+numpydoc
+atlassian-python-api
+Jinja2
+pcdsutils
+whatrecord
