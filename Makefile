@@ -1,6 +1,6 @@
 all: happi.json
 
-happi.json: 
+happi.json:
 	python -m whatrecord.plugins.happi > happi_info.json
 
 pages:

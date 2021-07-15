@@ -2,13 +2,13 @@ import inspect
 import json
 import logging
 import os
+from typing import List, Tuple
 
 import jinja2
 import pcdsutils.utils
 import requests
 import requests.exceptions
 from atlassian import Confluence
-from typing import List, Optional, Tuple
 
 logging.basicConfig(level="INFO")
 
@@ -54,8 +54,8 @@ def create_client() -> Confluence:
 
     client = Confluence(
         (
-            os.environ.get("CONFLUENCE_URL", "")
-            or "https://confluence-test02.slac.stanford.edu"
+            os.environ.get("CONFLUENCE_URL", "") or
+            "https://confluence-test02.slac.stanford.edu"
         ),
         session=s,
     )
