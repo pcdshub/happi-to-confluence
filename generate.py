@@ -250,8 +250,6 @@ def render_pages(
     return state
 
 
-# if "happi_info" not in globals():
-#     # ipython -i ... yeah
 with open("happi_info.json", "rt") as fp:
     happi_info = json.load(fp)
 
