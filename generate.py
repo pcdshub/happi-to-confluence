@@ -97,6 +97,9 @@ class NamedTemplate:
         self.titles = [jinja2.Template(title) for title in title_lines]
         self.template = jinja2.Template(contents)
 
+    def __repr__(self):
+        return f"<NamedTemplate {self.filename}>"
+
     def render(self, **kwargs) -> Tuple[List[str], str]:
         return (
             [title.render(**kwargs) for title in self.titles],
@@ -114,6 +117,11 @@ def get_page_labels(client, page_id):
     }
 
 
+def render_happi_template_arg(template, happi_item):
+    """Fill a Jinja2 template using information from a happi item."""
+    return jinja2.Template(template).render(**happi_item)
+
+
 def best_effort_get_args(cls, happi_item):
     sig = inspect.signature(cls)
     kwargs = {
@@ -122,17 +130,24 @@ def best_effort_get_args(cls, happi_item):
         if param.default is not param.empty
     }
     try:
-        bound = sig.bind(
-            *happi_item.get("args", []),
-            **happi_item.get("kwargs", {})
-        )
+        happi_args = [
+            render_happi_template_arg(value, happi_item)
+            for value in happi_item.get("args", [])
+        ]
+        happi_kwargs = {
+            name: render_happi_template_arg(value, happi_item)
+            for name, value in happi_item.get("kwargs", {}).items()
+        }
+        bound = sig.bind(*happi_args, **happi_kwargs)
     except TypeError:
-        ...
+        kwargs.update(**happi_item.get("kwargs"))
     else:
-        for arg, value in bound.arguments.items():
-            kwargs.setdefault(arg, value)
+        for name, value in bound.arguments.items():
+            kwargs.setdefault(name, value)
 
-    kwargs.update(**happi_item.get("kwargs"))
+    for name, value in happi_item.get("kwargs").items():
+        kwargs.setdefault(name, value)
+
     return kwargs
 
 
@@ -230,6 +245,7 @@ def render_pages(
 
         options = children.get("_options", {})
         titles, source = page_template.render(**render_kw)
+        existing_page = None
         for title in titles:
             existing_page = client.get_page_by_title(title=title, space=space)
             if existing_page:
@@ -247,25 +263,18 @@ def render_pages(
             logger.error("No available titles? %s", titles)
             continue
 
-        if options.get("overwrite", True) and NO_OVERWRITE_LABEL not in labels:
+        do_not_overwrite = not (
+            options.get("overwrite", True) and
+            NO_OVERWRITE_LABEL not in labels
+        )
+        if do_not_overwrite and existing_page:
+            page_info = existing_page
+        else:
             page_info = client.update_or_create(
                 parent_id=parent_id,
                 title=title,
                 body=source,
             )
-        else:
-            try:
-                page_info = client.create_page(
-                    parent_id=parent_id,
-                    title=title,
-                    space=space,
-                    body=source,
-                )
-            except requests.exceptions.HTTPError as ex:
-                if "A page with this title already exists" not in str(ex):
-                    raise
-                logger.info("Page already exists: %s; not overwriting", title)
-                page_info = client.get_page_by_title(space=space, title=title)
 
         for label in page_template.labels:
             client.set_page_label(page_info["id"], label)

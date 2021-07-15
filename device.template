@@ -1,7 +1,6 @@
 # title: {{ device_name }}
 # title: {{ device_name }}{{ page_title_marker}}
 # label: auto-generated
-<h2>{{device_name}} ({{device_class}})</h2>
 {{ device_class_doc }}
 <p>
   <ac:structured-macro ac:name="include" ac:schema-version="1">
