@@ -5,10 +5,12 @@
         {%- if section == "Parameters" or section == "Attributes" %}
             <table>
                 <thead>
-                    <th>Parameter</th>
-                    <th>Type</th>
-                    <th>Description</th>
+                    <tr>
+                        <th>Parameter</th>
+                        <th>Type</th>
+                        <th>Description</th>
                     {% if section == "Parameters" %}<th>Value</th>{% endif %}
+                    </tr>
                 </thead>
                 <tbody>
                 {%- for param in section_items %}
@@ -17,7 +19,7 @@
                         <td>{{ param.type }}</td>
                         <td><pre>{{ param.desc | join("\n") }}</pre></td>
                         {% if section == "Parameters" %}
-                        <td>{{ kwargs.get(param.name, "(default)") }}</td>
+                        <td>{{ kwargs.get(param.name, "(default)") | e }}</td>
                         {% endif %}
                     </tr>
                 {% endfor %}

@@ -1,7 +1,9 @@
+import difflib
 import inspect
 import json
 import logging
 import os
+import pathlib
 from typing import List, Tuple
 
 import jinja2
@@ -29,6 +31,7 @@ RELATED_TITLE_SKIPS = (
 )
 HAPPI_TO_CONFLUENCE_LABEL = "happi-to-confluence"
 NO_OVERWRITE_LABEL = "no-overwrite"
+SOURCE_PATH = pathlib.Path("source")
 
 
 def wrap_html(html):
@@ -244,10 +247,14 @@ def render_pages(
         logger.info("Rendering %s", page_template.filename)
 
         options = children.get("_options", {})
-        titles, source = page_template.render(**render_kw)
+        titles, new_source = page_template.render(**render_kw)
         existing_page = None
         for title in titles:
-            existing_page = client.get_page_by_title(title=title, space=space)
+            existing_page = client.get_page_by_title(
+                title=title,
+                space=space,
+                expand="body.storage",
+            )
             if existing_page:
                 labels = get_page_labels(client, existing_page["id"])
                 if HAPPI_TO_CONFLUENCE_LABEL in labels:
@@ -270,11 +277,41 @@ def render_pages(
         if do_not_overwrite and existing_page:
             page_info = existing_page
         else:
-            page_info = client.update_or_create(
-                parent_id=parent_id,
-                title=title,
-                body=source,
+            existing_source = (
+                existing_page["body"]["storage"]["value"]
+                if existing_page else None
             )
+            if existing_page and existing_source == new_source:
+                print("Existing page is up-to-date. Great!")
+            else:
+                with open(SOURCE_PATH / "existing" / f"{title}.html", "wt") as fp:
+                    print(existing_source, file=fp)
+
+                with open(SOURCE_PATH / "new" / f"{title}.html", "wt") as fp:
+                    print(new_source, file=fp)
+
+                diff = difflib.context_diff(
+                    existing_source.splitlines(True),
+                    new_source.splitlines(True),
+                    fromfile=title,
+                    tofile=f"new-{title}"
+                )
+                htmldiff = difflib.HtmlDiff().make_file(
+                    existing_source.splitlines(True),
+                    new_source.splitlines(True),
+                    title,
+                    f"new-{title}"
+                )
+                with open(SOURCE_PATH / "diff" / f"{title}.html.diff", "wt") as fp:
+                    print("".join(diff), file=fp)
+                with open(SOURCE_PATH / "diff" / f"{title}.html", "wt") as fp:
+                    print(htmldiff, file=fp)
+
+                page_info = client.update_or_create(
+                    parent_id=parent_id,
+                    title=title,
+                    body=new_source,
+                )
 
         for label in page_template.labels:
             client.set_page_label(page_info["id"], label)

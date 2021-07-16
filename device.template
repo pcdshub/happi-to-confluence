@@ -33,11 +33,13 @@
 
 {% if relevant_pvs_by_kind %}
   <h2>Relevant PVs</h2>
-  <table id="related_records">
+  <table>
     <thead>
-      <th>PV</th>
-      <th>Attribute</th>
-      <th>Kind</th>
+        <tr>
+            <th>PV</th>
+            <th>Attribute</th>
+            <th>Kind</th>
+        </tr>
     </thead>
     <tbody>
     {% for kind, pvs in relevant_pvs_by_kind.items() %}
