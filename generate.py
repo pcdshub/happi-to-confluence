@@ -24,6 +24,11 @@ logger.setLevel("DEBUG")
 
 # space = "PCDS"
 SPACE = "~klauer"
+CONFLUENCE_URL = (
+    os.environ.get("CONFLUENCE_URL", "") or
+    "https://confluence.slac.stanford.edu"
+)
+CONFLUENCE_TOKEN = os.environ["CONFLUENCE_TOKEN"]
 DOCUMENTATION_ROOT_TITLE = "Typhos Documentation Root"
 PAGE_TITLE_MARKER = " (Typhos)"
 USER_PAGE_SUFFIX = " - Notes"
@@ -63,13 +68,11 @@ class NamedTemplate:
     labels: List[str]
 
     def __init__(self, fn: str):
-        self.filename = fn
-        self.labels = [HAPPI_TO_CONFLUENCE_LABEL]
         with open(fn, "rt") as fp:
             contents = fp.read().splitlines()
-
         info, contents = self._split_title_and_contents(contents)
-        self.labels = info["labels"]
+        self.filename = fn
+        self.labels = list(sorted(set(info["labels"]) | {HAPPI_TO_CONFLUENCE_LABEL}))
         self.titles = [jinja2.Template(title) for title in info["title_lines"]]
         self.template = jinja2.Template(contents)
 
@@ -154,18 +157,22 @@ views: PageHierarchy = {
 docstring_template = NamedTemplate("docstring.template")
 
 
-def create_client() -> Confluence:
-    s = requests.Session()
-    s.headers["Authorization"] = f"Bearer {os.environ['CONFLUENCE_TOKEN']}"
+def create_client(
+    url: str = CONFLUENCE_URL, token: str = CONFLUENCE_TOKEN
+) -> Confluence:
+    """Create the Confluence client.
 
-    client = Confluence(
-        (
-            os.environ.get("CONFLUENCE_URL", "") or
-            "https://confluence.slac.stanford.edu"
-        ),
-        session=s,
-    )
-    return client
+    Parameters
+    ----------
+    url : str
+        The confluence URL.
+
+    token : str
+        The token with read/write permissions.
+    """
+    s = requests.Session()
+    s.headers["Authorization"] = f"Bearer {token}"
+    return Confluence(url, session=s)
 
 
 def get_page_labels(client: Confluence, page_id: str):
@@ -356,6 +363,43 @@ def get_view_render_kwargs(view, view_state, all_item_state):
     )
 
 
+def diff_pages(
+    dest_path: pathlib.Path, title: str, existing_source: str, new_source: str
+):
+    """Write status diff information to ``dest_path``."""
+    existing_path = SOURCE_PATH / "existing"
+    new_path = SOURCE_PATH / "new"
+    diff_path = SOURCE_PATH / "diff"
+    for path in [existing_path, new_path, diff_path]:
+        try:
+            path.mkdir(parents=True, exist_ok=True)
+        except Exception:
+            logger.warning("Failed to create %s", path, exc_info=True)
+
+    with open(existing_path / f"{title}.html", "wt") as fp:
+        print(existing_source, file=fp)
+
+    with open(new_path / f"{title}.html", "wt") as fp:
+        print(new_source, file=fp)
+
+    diff = difflib.context_diff(
+        existing_source.splitlines(True),
+        new_source.splitlines(True),
+        fromfile=title,
+        tofile=f"new-{title}"
+    )
+    htmldiff = difflib.HtmlDiff().make_file(
+        existing_source.splitlines(True),
+        new_source.splitlines(True),
+        title,
+        f"new-{title}"
+    )
+    with open(diff_path / f"{title}.html.diff", "wt") as fp:
+        print("".join(diff), file=fp)
+    with open(diff_path / f"{title}.html", "wt") as fp:
+        print(htmldiff, file=fp)
+
+
 def render_pages(
     client: Confluence,
     page_to_children: PageHierarchy,
@@ -426,33 +470,24 @@ def render_pages(
         else:
             existing_source = (
                 existing_page["body"]["storage"]["value"]
-                if existing_page else None
+                if existing_page else ""
             )
             if existing_page and existing_source == new_source:
                 print("Existing page is up-to-date. Great!")
+                page_info = existing_page
             else:
-                with open(SOURCE_PATH / "existing" / f"{title}.html", "wt") as fp:
-                    print(existing_source, file=fp)
-
-                with open(SOURCE_PATH / "new" / f"{title}.html", "wt") as fp:
-                    print(new_source, file=fp)
-
-                diff = difflib.context_diff(
-                    existing_source.splitlines(True),
-                    new_source.splitlines(True),
-                    fromfile=title,
-                    tofile=f"new-{title}"
-                )
-                htmldiff = difflib.HtmlDiff().make_file(
-                    existing_source.splitlines(True),
-                    new_source.splitlines(True),
-                    title,
-                    f"new-{title}"
-                )
-                with open(SOURCE_PATH / "diff" / f"{title}.html.diff", "wt") as fp:
-                    print("".join(diff), file=fp)
-                with open(SOURCE_PATH / "diff" / f"{title}.html", "wt") as fp:
-                    print(htmldiff, file=fp)
+                try:
+                    diff_pages(
+                        dest_path=SOURCE_PATH,
+                        title=title,
+                        existing_source=existing_source,
+                        new_source=new_source,
+                    )
+                except Exception as ex:
+                    logger.error(
+                        "Failed to diff existing pages: %s",
+                        ex, exc_info=True
+                    )
 
                 page_info = client.update_or_create(
                     parent_id=parent_id,
@@ -613,13 +648,14 @@ def render_view_pages(space: str, client: Confluence, root_page, state):
     return view_state
 
 
-def main():
-    space = SPACE
-    root_title = DOCUMENTATION_ROOT_TITLE
+def main(space: str, root_title: str):
     client, root_page = initialize_client(space=space, root_title=root_title)
-    # all_item_state = render_device_pages(space=space, client=client, root_page=root_page)
-    # render_view_pages(space=space, client=client, root_page=root_page, state=all_item_state)
+    all_item_state = render_device_pages(space=space, client=client, root_page=root_page)
+    view_state = render_view_pages(space=space, client=client, root_page=root_page, state=all_item_state)
+    return all_item_state, view_state
 
 
 if __name__ == "__main__":
-    main()
+    all_item_state, view_state = main(
+        space=SPACE, root_title=DOCUMENTATION_ROOT_TITLE
+    )  # noqa
