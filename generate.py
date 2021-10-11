@@ -14,6 +14,7 @@ import numpydoc.docscrape
 import pcdsutils.utils
 import requests
 import requests.exceptions
+
 from atlassian import Confluence
 
 logging.basicConfig(level="INFO")
@@ -45,6 +46,17 @@ PageHierarchy = dict
 
 
 class NamedTemplate:
+    """
+    A jinja template that contains a title and some additional information.
+
+    There may be multiple titles provided; the first valid one will be used.
+    Labels will be applied to the generated page by name.
+
+    Parameters
+    ----------
+    fn : str
+        The template filename.
+    """
     filename: str
     titles: List[jinja2.Template]
     template: jinja2.Template
@@ -56,31 +68,52 @@ class NamedTemplate:
         with open(fn, "rt") as fp:
             contents = fp.read().splitlines()
 
-        title_lines = []
+        info, contents = self._split_title_and_contents(contents)
+        self.labels = info["labels"]
+        self.titles = [jinja2.Template(title) for title in info["title_lines"]]
+        self.template = jinja2.Template(contents)
+
+        if not self.titles:
+            raise ValueError(f"Template invalid: {fn} has no filename lines")
+
+    @staticmethod
+    def _split_title_and_contents(contents) -> Tuple[dict, str]:
+        """Parse the template, grabbing header information and contents."""
+        info = {
+            "title_lines": [],
+            "labels": [],
+        }
         for idx, line in enumerate(contents):
             if line.startswith("# "):
                 line = line.strip("# ")
                 directive, data = (item.strip() for item in line.split(":", 1))
                 if directive == "title":
-                    title_lines.append(data)
+                    info["title_lines"].append(data)
                 elif directive == "label":
-                    self.labels.append(data)
+                    info["labels"].append(data)
                 else:
                     raise ValueError(f"Unknown directive: {directive} ({data})")
             else:
                 contents = "\n".join(contents[idx:])
                 break
 
-        if not title_lines:
-            raise ValueError(f"Template invalid: {fn} has no filename lines")
-
-        self.titles = [jinja2.Template(title) for title in title_lines]
-        self.template = jinja2.Template(contents)
+        return info, contents
 
     def __repr__(self):
         return f"<NamedTemplate {self.filename}>"
 
     def render(self, **kwargs) -> Tuple[List[str], str]:
+        """
+        Render the template with the given kwargs.
+
+        Returns
+        -------
+        titles : list of str
+            List of potential titles, to be checked on confluence.
+
+        rendered : str
+            The rendered page.
+        """
         return (
             [title.render(**kwargs) for title in self.titles],
             self.template.render(**kwargs)
@@ -128,7 +161,7 @@ def create_client() -> Confluence:
     client = Confluence(
         (
             os.environ.get("CONFLUENCE_URL", "") or
-            "https://confluence-test02.slac.stanford.edu"
+            "https://confluence.slac.stanford.edu"
         ),
         session=s,
     )
@@ -584,8 +617,8 @@ def main():
     space = SPACE
     root_title = DOCUMENTATION_ROOT_TITLE
     client, root_page = initialize_client(space=space, root_title=root_title)
-    all_item_state = render_device_pages(space=space, client=client, root_page=root_page)
-    render_view_pages(space=space, client=client, root_page=root_page, state=all_item_state)
+    # all_item_state = render_device_pages(space=space, client=client, root_page=root_page)
+    # render_view_pages(space=space, client=client, root_page=root_page, state=all_item_state)
 
 
 if __name__ == "__main__":
