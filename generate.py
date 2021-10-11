@@ -285,13 +285,16 @@ def get_per_item_render_kwargs(client, happi_item_name, happi_item, state):
     except Exception:
         device_class_doc = "None"
         device_class_name = device_class_name.split(".")[-1]
+        cls = None
+        kwargs = {}
     else:
         device_class_doc = inspect.getdoc(cls) or "None"
         device_class_name = cls.__name__
+        kwargs = best_effort_get_args(cls, happi_item)
 
     _, rendered_docstring = docstring_template.render(
         sections=dict(numpydoc.docscrape.NumpyDocString(device_class_doc)),
-        kwargs=best_effort_get_args(cls, happi_item),
+        kwargs=kwargs,
         happi_item=happi_item,
     )
 
