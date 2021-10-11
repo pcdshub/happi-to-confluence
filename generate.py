@@ -278,6 +278,8 @@ def get_per_item_render_kwargs(client, happi_item_name, happi_item, state):
         user_page_suffix: the user-editable notes pages
         related_pages: related pages to the given device based on a search
         state: the overall happi-to-confluence state dictionary
+        item_state: this device's state from happi-to-confluence
+        confluence_url: the base confluence URL (``CONFLUENCE_URL``)
     """
     device_class_name = happi_item["device_class"]
     try:
@@ -344,6 +346,8 @@ def get_per_item_render_kwargs(client, happi_item_name, happi_item, state):
         user_page_suffix=USER_PAGE_SUFFIX,
         related_pages=related_pages,
         state=state,
+        item_state=state.setdefault(happi_item_name, {}),
+        confluence_url=client.url,
     )
 
 

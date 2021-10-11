@@ -7,6 +7,14 @@
     </a>
 </h2>
 
+<ac:structured-macro ac:name="info" ac:schema-version="1">
+  <ac:parameter ac:name="title">What is this?</ac:parameter>
+  <ac:rich-text-body>
+    <p>This page lists all happi database items of the same Python class <code>{{device_class}}</code>.</p>
+    <p>If you wish to add notes about a specific device, please edit its corresponding "<code>- Notes</code>" page.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+
 <p>
   <ac:structured-macro ac:name="children" ac:schema-version="2">
     <ac:parameter ac:name="all">true</ac:parameter>
