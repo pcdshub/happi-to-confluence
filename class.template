@@ -1,11 +1,6 @@
 # title: {{ device_class }}
 # title: {{ device_class }}{{ page_title_marker }}
 # label: auto-generated
-<h2>
-    <a href="https://pcdshub.github.io/pcdsdevices/master/generated/{{device_class}}.html" target="_blank">
-        {{device_class}}
-    </a>
-</h2>
 
 <ac:structured-macro ac:name="info" ac:schema-version="1">
   <ac:parameter ac:name="title">What is this?</ac:parameter>
@@ -14,6 +9,12 @@
     <p>If you wish to add notes about a specific device, please edit its corresponding "<code>- Notes</code>" page.</p>
   </ac:rich-text-body>
 </ac:structured-macro>
+
+<h2>
+  <a href="https://pcdshub.github.io/pcdsdevices/master/generated/{{device_class}}.html" target="_blank">
+    {{device_class}}
+  </a>
+</h2>
 
 <p>
   <ac:structured-macro ac:name="children" ac:schema-version="2">
