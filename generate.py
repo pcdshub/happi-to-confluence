@@ -303,7 +303,12 @@ def get_per_item_render_kwargs(client, happi_item_name, happi_item, state):
     if happi_item_name in state.setdefault("_related_pages", {}):
         related_pages = state["_related_pages"][happi_item_name]
     else:
-        related_query = f"type = page and (title ~ {happi_item_name})"
+        related_query = (
+            f"type = page and ( "
+            f"title ~ {happi_item_name} "
+            f"OR title ~ {device_class_name} "
+            f")"
+        )
         related_pages = client.cql(related_query, limit=5).get("results", [])
         for page in related_pages:
             page_api_space = page["content"]["_expandable"]["space"]
