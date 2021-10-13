@@ -7,14 +7,15 @@
   <ac:rich-text-body>
     <p>This page lists all happi database items of the same Python class <code>{{device_class}}</code>.</p>
     <p>If you wish to add notes about a specific device, please edit its corresponding "<code>- Notes</code>" page.</p>
+    <p>Additional usage information about this class may be available on the
+      <a href="https://pcdshub.github.io/pcdsdevices/master/search.html?q={{device_class}}" target="_blank">
+        pcdsdevices documentation site.
+      </a>
+    </p>
   </ac:rich-text-body>
 </ac:structured-macro>
 
-<h2>
-  <a href="https://pcdshub.github.io/pcdsdevices/master/generated/{{device_class}}.html" target="_blank">
-    {{device_class}}
-  </a>
-</h2>
+<h2>{{device_class}}</h2>
 
 <p>
   <ac:structured-macro ac:name="children" ac:schema-version="2">
