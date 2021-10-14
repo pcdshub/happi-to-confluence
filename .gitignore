@@ -1,2 +1,4 @@
 /confluence.sh
 /happi_info.json
+/source/**/*.html
+/source/**/*.diff

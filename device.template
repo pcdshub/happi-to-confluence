@@ -1,6 +1,21 @@
 # title: {{ device_name }}
 # title: {{ device_name }}{{ page_title_marker}}
 # label: auto-generated
+<ac:structured-macro ac:name="html" ac:schema-version="1">
+  <ac:plain-text-body><![CDATA[<!--
+
+** WAIT! **
+
+Please don't edit this page. This page is auto-generated and may be frequently
+overwritten - your changes will NOT persist.
+
+The Notes page linked below is your spot for notes about this device.
+
+** WAIT! **
+
+-->]]></ac:plain-text-body>
+</ac:structured-macro>
+
 {{ device_class_doc }}
 <p>
   <ac:structured-macro ac:name="include" ac:schema-version="1">
@@ -11,7 +26,19 @@
     </ac:parameter>
   </ac:structured-macro>
 </p>
+
+<h2>API Documentation</h2>
+
+<p>Additional usage information about this device may be available on the
+  <a href="https://pcdshub.github.io/pcdsdevices/master/search.html?q={{device_class}}" target="_blank">
+    pcdsdevices documentation site.
+  </a>
+</p>
+
 <h2>Happi Information</h2>
+
+This information is stored in the happi database.  It is used to create this Python device.
+
     <table>
         <thead>
             <tr>
@@ -33,6 +60,10 @@
 
 {% if relevant_pvs_by_kind %}
   <h2>Relevant PVs</h2>
+
+  These PVs are used by the device.  PVs may be recorded in the EPICS Archive Appliance.
+  Click any PV to see its history according to the archiver.
+
   <table>
     <thead>
         <tr>
@@ -62,3 +93,38 @@
     </tbody>
   </table>
 {% endif %}
+
+<h2>Jira</h2>
+
+The following Jira tickets may be relevant for {{ device_name }}:
+
+<p>
+  <ac:structured-macro ac:name="jira" ac:schema-version="1">
+    <ac:parameter ac:name="server">SLAC National Accelerator Laboratory</ac:parameter>
+    <ac:parameter ac:name="columnIds">issuekey,summary,issuetype,created,updated,duedate,assignee,reporter,priority,status,resolution</ac:parameter>
+    <ac:parameter ac:name="columns">key,summary,type,created,updated,due,assignee,reporter,priority,status,resolution</ac:parameter>
+    <ac:parameter ac:name="maximumIssues">20</ac:parameter>
+    <ac:parameter ac:name="jqlQuery">summary ~ "{{ device_name }}" OR description ~ "{{ device_name }}" OR summary ~ "{{ device_class }}" OR description ~ "{{ device_class }}" </ac:parameter>
+    <ac:parameter ac:name="serverId">1b8dc293-975d-3f2d-b988-18fd9aec1546</ac:parameter>
+  </ac:structured-macro>
+</p>
+
+<h2>How do I change this?</h2>
+
+<p>
+  This page is not intended to be modified and will be overwritten without notice.
+  However, the notes page is free for you to edit and add notes about {{ device_name }}.
+  Those notes will be automatically included in the device information page.
+</p>
+
+<p>If you have something to add of use to others regarding this device, please edit
+  <ac:link>
+    <ri:page ri:content-title="{{ page_title_prefix }}{{ device_name }}{{ user_page_suffix }}"/>
+    <ac:plain-text-link-body><![CDATA[this page]]></ac:plain-text-link-body>
+  </ac:link>
+  .
+</p>
+<p>
+  If you find an issue with the data in the happi database, please contact your POC
+  or reach out to #pcds-help on Slack.
+</p>

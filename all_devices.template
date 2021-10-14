@@ -1,5 +1,50 @@
-# title: Happi Devices by Name
+# title: {{ root_page }}
 # label: auto-generated
+
+<ac:structured-macro ac:name="html" ac:schema-version="1">
+  <ac:plain-text-body><![CDATA[<!--
+
+** WAIT! **
+
+Please don't edit this page. This page is auto-generated and may be frequently
+overwritten - your changes will NOT persist.
+
+Make notes on each device in its corresponding "Notes" section.
+
+** WAIT! **
+
+-->]]></ac:plain-text-body>
+</ac:structured-macro>
+
+<h2>What is this?</h2>
+
+<p>
+  This information is generated from the PCDS <a
+  href="https://pcdshub.github.io/happi/master/">happi</a> database. If you
+  are new to happi, please see
+  <ac:link>
+      <ri:page ri:content-title="How to Use Happi" ri:space-key="PCDS"/>
+  </ac:link>
+  for further information.
+</p>
+
+<p>
+  Each table entry below corresponds to one ophyd device that is accessible
+  through hutch-python, happi, typhos, LUCID, and other software.
+</p>
+
+<p>
+  This page is not intended to be modified and will be overwritten without
+  notice. However, each device has a "notes" page which is free for you to
+  edit. Those notes will be automatically included in the device information
+  page, which will show in the device information page.
+</p>
+
+<p>
+  If you find an issue with the data in the happi database, please contact your
+  POC or reach out to #pcds-help on Slack.
+</p>
+
 <h2>Happi Devices</h2>
     <table>
         <thead>
