@@ -6,7 +6,7 @@ import json
 import logging
 import os
 import pathlib
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import jinja2
 import numpydoc
@@ -22,15 +22,21 @@ logging.basicConfig(level="INFO")
 logger = logging.getLogger(__name__)
 logger.setLevel("DEBUG")
 
-# space = "PCDS"
-SPACE = "~klauer"
+production = False
+
+if production:
+    SPACE = "PCDS"
+    DOCUMENTATION_ROOT_TITLE = "Happi Devices"
+else:
+    SPACE = "~klauer"
+    DOCUMENTATION_ROOT_TITLE = "Typhos Documentation Root"
+
 CONFLUENCE_URL = (
     os.environ.get("CONFLUENCE_URL", "") or
     "https://confluence.slac.stanford.edu"
 )
 CONFLUENCE_TOKEN = os.environ["CONFLUENCE_TOKEN"]
-DOCUMENTATION_ROOT_TITLE = "Typhos Documentation Root"
-PAGE_TITLE_MARKER = " (Typhos)"
+PAGE_TITLE_MARKER = " (Happi)"
 USER_PAGE_SUFFIX = " - Notes"
 RELATED_TITLE_SKIPS = (
     lambda title, page: PAGE_TITLE_MARKER in title,
@@ -124,7 +130,7 @@ class NamedTemplate:
 
 
 # Each device will render with this given hierarchy of pages:
-per_device_hierarchy = {
+PER_DEVICE_HIERARCHY = {
     NamedTemplate("class.template"): {
         NamedTemplate("device.template"): {
             NamedTemplate("user.template"): {
@@ -137,7 +143,7 @@ per_device_hierarchy = {
 }
 
 # ... except if the device name and class name match, as in like AT1K4:
-matching_name_and_class_hierarchy: PageHierarchy = {
+MATCHING_NAME_AND_CLASS_HIERARCHY: PageHierarchy = {
     NamedTemplate("device.template"): {
         NamedTemplate("user.template"): {
             "_options": {
@@ -149,7 +155,7 @@ matching_name_and_class_hierarchy: PageHierarchy = {
 
 # Additionally, "views" of all (or subsets of devices) will be generated
 # with the following.  These go at the documentation root.
-views: PageHierarchy = {
+VIEWS: PageHierarchy = {
     NamedTemplate("all_devices.template"): {
     },
 }
@@ -349,6 +355,7 @@ def get_per_item_render_kwargs(client, happi_item_name, happi_item, state):
         relevant_pvs_by_kind=pvs_by_kind,
         page_title_marker=PAGE_TITLE_MARKER,
         user_page_suffix=USER_PAGE_SUFFIX,
+        root_page=DOCUMENTATION_ROOT_TITLE,
         related_pages=related_pages,
         state=state,
         item_state=state.setdefault(happi_item_name, {}),
@@ -372,6 +379,9 @@ def get_view_render_kwargs(view, view_state, all_item_state):
         identifier=view.filename,
         all_item_state=all_item_state,
         view_state=view_state,
+        root_page=DOCUMENTATION_ROOT_TITLE,
+        page_title_marker=PAGE_TITLE_MARKER,
+        user_page_suffix=USER_PAGE_SUFFIX,
     )
 
 
@@ -419,6 +429,8 @@ def render_pages(
     space: str,
     render_kw: dict,
     state: dict,
+    properties: dict,
+    minor_edit: bool = True,
 ):
     """
     Render confluence pages.
@@ -453,7 +465,7 @@ def render_pages(
         titles, new_source = page_template.render(**render_kw)
         existing_page = None
         for title in titles:
-            existing_page = client.get_page_by_title(
+            existing_page: Optional[dict] = client.get_page_by_title(
                 title=title,
                 space=space,
                 expand="body.storage",
@@ -501,19 +513,32 @@ def render_pages(
                         ex, exc_info=True
                     )
 
+                if existing_page and existing_page["id"] == parent_id:
+                    # Special-case for updating the root document;
+                    # parent_id is set to DOC_ROOT and we may want to update
+                    # that automatically
+                    parent_id = client.get_parent_content_id(parent_id)
+
                 page_info = client.update_or_create(
                     parent_id=parent_id,
                     title=title,
                     body=new_source,
+                    minor_edit=minor_edit,
+                    version_comment="happi-to-confluence update",
                 )
 
         for label in page_template.labels:
             client.set_page_label(page_info["id"], label)
 
         # for key, value in properties.items():
-        #     client.set_page_property(
+        #     # client.set_page_property(
+        #     client.update_page_property(
         #         page_info["id"],
-        #         dict(key=key, value=value, version=dict(number=1, minorEdit=True, hidden=True)),
+        #         dict(
+        #             key=key,
+        #             value=value,
+        #             # version=dict(minorEdit=True, hidden=True),
+        #         ),
         #     )
 
         # state[title] = (page_template, page_info)
@@ -532,6 +557,7 @@ def render_pages(
             parent=page_info,
             state=state,
             space=space,
+            properties={},
         )
 
     return state
@@ -611,19 +637,22 @@ def render_device_pages(
         if happi_name.lower() == render_kw["device_class"].lower():
             # In cases of devices like AT1K4, its class and happi name are
             # the same; so we can't make it a subpage.. hmm
-            to_render = matching_name_and_class_hierarchy
+            to_render = MATCHING_NAME_AND_CLASS_HIERARCHY
         else:
-            to_render = per_device_hierarchy
+            to_render = PER_DEVICE_HIERARCHY
 
-        # properties = dict(
-        #     device_name=happi_item_name,
-        #     # happi_item=happi_item,
-        #     device_class=device_class_name,
-        # )
         render_pages(
-            client=client, page_to_children=to_render,
-            render_kw=render_kw, parent=root_page, space=SPACE,
+            client=client,
+            page_to_children=to_render,
+            render_kw=render_kw,
+            parent=root_page,
+            space=SPACE,
             state=state,
+            properties=dict(
+                device_name=happi_name,
+                # happi_item=happi_item,
+                device_class=render_kw["device_class"],
+            ),
         )
         state[happi_name]["happi_item"] = happi_item
 
@@ -648,14 +677,18 @@ def render_view_pages(space: str, client: Confluence, root_page, state):
         State information about generated overall view pages.
     """
     view_state = {}
-    for view, view_children in views.items():
+    for view, view_children in VIEWS.items():
         render_kw = get_view_render_kwargs(
             view=view, all_item_state=state, view_state=view_state
         )
         render_pages(
-            client=client, page_to_children={view: view_children},
-            render_kw=render_kw, parent=root_page, space=space,
+            client=client,
+            page_to_children={view: view_children},
+            render_kw=render_kw,
+            parent=root_page,
+            space=space,
             state=view_state,
+            properties={},
         )
     return view_state
 

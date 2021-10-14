@@ -112,7 +112,7 @@ The following Jira tickets may be relevant for {{ device_name }}:
 <h2>How do I change this?</h2>
 
 <p>
-  This page is not intended to be modified and may be overwritten without notice.
+  This page is not intended to be modified and will be overwritten without notice.
   However, the notes page is free for you to edit and add notes about {{ device_name }}.
   Those notes will be automatically included in the device information page.
 </p>
