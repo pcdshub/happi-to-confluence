@@ -7,11 +7,11 @@
 </p>
 
 {% for page in related_pages %}
-    <h2>Confluence page: {{ page.content.title }}</h2>
+    <h2>Confluence page: {{ page.content.title | e }}</h2>
     <ac:structured-macro ac:name="include" ac:schema-version="1">
       <ac:parameter ac:name="">
         <ac:link>
-          <ri:page ri:space-key="{{ page.space }}" ri:content-title="{{ page.content.title }}"/>
+          <ri:page ri:space-key="{{ page.space }}" ri:content-title="{{ page.content.title | e }}"/>
         </ac:link>
       </ac:parameter>
     </ac:structured-macro>
