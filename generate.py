@@ -22,7 +22,7 @@ logging.basicConfig(level="INFO")
 logger = logging.getLogger(__name__)
 logger.setLevel("DEBUG")
 
-production = False
+production = True
 
 if production:
     SPACE = "PCDS"
@@ -519,13 +519,20 @@ def render_pages(
                     # that automatically
                     parent_id = client.get_parent_content_id(parent_id)
 
-                page_info = client.update_or_create(
-                    parent_id=parent_id,
-                    title=title,
-                    body=new_source,
-                    minor_edit=minor_edit,
-                    version_comment="happi-to-confluence update",
-                )
+                try:
+                    page_info = client.update_or_create(
+                        parent_id=parent_id,
+                        title=title,
+                        body=new_source,
+                        minor_edit=minor_edit,
+                        version_comment="happi-to-confluence update",
+                    )
+                except Exception as ex:
+                    logger.error("Failed to update page: %s", ex, exc_info=True)
+                    with open(f"failed_update_{title}.txt", "wt") as fp:
+                        fp.write(new_source)
+
+                    continue
 
         for label in page_template.labels:
             client.set_page_label(page_info["id"], label)
