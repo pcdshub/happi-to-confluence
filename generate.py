@@ -634,9 +634,10 @@ def render_device_pages(
         happi_info = json.load(fp)
 
     # Keys for the happi plugin are the happi item names
-    for idx, (happi_name, happi_item) in enumerate(
-        happi_info["metadata_by_key"].items()
-    ):
+    for happi_name, happi_item in happi_info["metadata_by_key"].items():
+        if not happi_item.get("device_class", None):
+            continue
+
         render_kw = get_per_item_render_kwargs(
             client, happi_name, happi_item, state=state
         )
