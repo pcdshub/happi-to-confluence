@@ -666,7 +666,10 @@ def render_device_pages(
         happi_info = json.load(fp)
 
     # Keys for the happi plugin are the happi item names
-    for happi_name, happi_item in happi_info["metadata_by_key"].items():
+    md_by_key = happi_info["metadata_by_key"]
+    for idx, (happi_name, happi_item) in enumerate(md_by_key.items(), 1):
+        logger.info("")
+        logger.info(f"Working on device {idx} of {len(md_by_key)}: {happi_name}...")
         if not happi_item.get("device_class", None):
             continue
 
@@ -698,7 +701,7 @@ def render_device_pages(
         )
         state[happi_name]["happi_item"] = happi_item
 
-        if testing:
+        if testing and idx > 10:
             break
 
     return state
@@ -741,10 +744,7 @@ def render_view_pages(space: str, client: Confluence, root_page, state):
 def main(space: str, root_title: str, testing: bool = False):
     client, root_page = initialize_client(space=space, root_title=root_title)
     all_item_state = render_device_pages(space=space, client=client, root_page=root_page, testing=testing)
-    if testing:
-        view_state = None
-    else:
-        view_state = render_view_pages(space=space, client=client, root_page=root_page, state=all_item_state)
+    view_state = render_view_pages(space=space, client=client, root_page=root_page, state=all_item_state)
     return all_item_state, view_state
 
 

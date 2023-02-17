@@ -49,7 +49,7 @@ Make notes on each device in its corresponding "Notes" section.
     <table>
         <thead>
             <tr>
-                <th>Name</th>
+                <th>Device Name</th>
                 <th>Class</th>
                 <th>Z</th>
             </tr>
@@ -59,13 +59,22 @@ Make notes on each device in its corresponding "Notes" section.
 {% if not item_name.startswith("_") %}
         <tr>
             <td>
-              <a href="/pages/viewpage.action?pageId={{ info["device.template"]["id"] }}"</a>
+              <a href="/pages/viewpage.action?pageId={{ info["device.template"]["id"] }}">
                 {{ info["device.template"]["title"] }}
               </a>
+
+              -
+
+              (
+              <a href="/pages/editpage.action?pageId={{ info["user.template"]["id"] }}">
+                Edit
+              </a>
+              )
+
             </td>
             <td>
     {% if "class.template" in info %}
-            <a href="/pages/viewpage.action?pageId={{ info["class.template"]["id"] }}"</a>
+            <a href="/pages/viewpage.action?pageId={{ info["class.template"]["id"] }}">
               {{ info["class.template"]["title"] }}
             </a>
     {% endif %}
