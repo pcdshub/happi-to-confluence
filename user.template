@@ -2,10 +2,6 @@
 # title: {{ device_name }}{{ user_page_suffix }}{{ page_title_marker }}
 # label: auto-generated
 # label: no-overwrite
-<p>
-  <ac:structured-macro ac:name="toc" ac:schema-version="1"/>
-</p>
-
 {% for page in related_pages %}
     <h2>Confluence page: {{ page.content.title | e }}</h2>
     <ac:structured-macro ac:name="include" ac:schema-version="1">
