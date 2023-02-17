@@ -2,13 +2,7 @@
 # title: {{ device_class }}{{ page_title_marker }}
 # label: auto-generated
 
-<h4>All {{device_class}} devices</h4>
-
-See also the
-<a href="https://pcdshub.github.io/pcdsdevices/master/search.html?q={{device_class}}" target="_blank">
-  pcdsdevices documentation
-</a>.
-
+<h4>All devices of the Python class {{device_class}}</h4>
 <p>
   <ac:structured-macro ac:name="children" ac:schema-version="2">
     <ac:parameter ac:name="all">true</ac:parameter>

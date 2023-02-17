@@ -59,13 +59,15 @@ Make notes on each device in its corresponding "Notes" section.
 {% if not item_name.startswith("_") %}
         <tr>
             <td>
-              <ac:link>
-                <ri:page ri:content-title="{{ info["device.template"]["title"] }} "/>
-              </ac:link>
+              <a href="/pages/viewpage.action?pageId={{ info["device.template"]["id"] }}"</a>
+                {{ info["device.template"]["title"] }}
+              </a>
             </td>
             <td>
     {% if "class.template" in info %}
+            <a href="/pages/viewpage.action?pageId={{ info["class.template"]["id"] }}"</a>
               {{ info["class.template"]["title"] }}
+            </a>
     {% endif %}
             </td>
             <td>

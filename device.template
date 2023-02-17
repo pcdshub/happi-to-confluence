@@ -33,8 +33,9 @@ for all instances.
       pcdsdevices documentation site.
     </a>
   </i>
-  <br/>
 </p>
+
+<br/>
 
 <div title="Python documentation string from pcdsdevices">
 {{ device_class_doc }}
