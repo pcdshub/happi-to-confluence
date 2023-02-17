@@ -69,23 +69,24 @@ Make notes on each device in its corresponding "Notes" section.
   {% for info in all_item_state_by_beamline[beamline] %}
       <tr>
           <td>
+            {{ info["device.template"]["title"] }}
             <a href="/pages/viewpage.action?pageId={{ info["device.template"]["id"] }}">
-              {{ info["device.template"]["title"] }}
+              View
             </a>
-
-            -
-
-            (
+            /
             <a href="/pages/editpage.action?pageId={{ info["user.template"]["id"] }}">
               Edit
             </a>
-            )
-
           </td>
           <td>
   {% if "class.template" in info %}
+          {{ info["class.template"]["title"] }}
           <a href="/pages/viewpage.action?pageId={{ info["class.template"]["id"] }}">
-            {{ info["class.template"]["title"] }}
+            View
+          </a>
+          /
+          <a href="/pages/editpage.action?pageId={{ info["class.template"]["id"] }}">
+            Edit
           </a>
   {% endif %}
           </td>

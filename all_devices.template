@@ -62,34 +62,35 @@ Make notes on each device in its corresponding "Notes" section.
         </thead>
         <tbody>
 {% for item_name, info in all_item_state.items() | sort%}
-{% if not item_name.startswith("_") %}
-        <tr>
-            <td>
-              <a href="/pages/viewpage.action?pageId={{ info["device.template"]["id"] }}">
-                {{ info["device.template"]["title"] }}
-              </a>
-
-              -
-
-              (
-              <a href="/pages/editpage.action?pageId={{ info["user.template"]["id"] }}">
-                Edit
-              </a>
-              )
-
-            </td>
-            <td>
-    {% if "class.template" in info %}
-            <a href="/pages/viewpage.action?pageId={{ info["class.template"]["id"] }}">
-              {{ info["class.template"]["title"] }}
+  {% if not item_name.startswith("_") %}
+      <tr>
+          <td>
+            {{ info["device.template"]["title"] }}
+            <a href="/pages/viewpage.action?pageId={{ info["device.template"]["id"] }}">
+              View
             </a>
-    {% endif %}
-            </td>
-            <td>
-                {{ info.happi_item.z }}
-            </td>
-        </tr>
-{% endif %}
+            /
+            <a href="/pages/editpage.action?pageId={{ info["user.template"]["id"] }}">
+              Edit
+            </a>
+          </td>
+          <td>
+  {% if "class.template" in info %}
+          {{ info["class.template"]["title"] }}
+          <a href="/pages/viewpage.action?pageId={{ info["class.template"]["id"] }}">
+            View
+          </a>
+          /
+          <a href="/pages/editpage.action?pageId={{ info["class.template"]["id"] }}">
+            Edit
+          </a>
+  {% endif %}
+          </td>
+          <td>
+              {{ info.happi_item.z }}
+          </td>
+      </tr>
+  {% endif %}
 {% endfor %}
         </tbody>
     </table>
