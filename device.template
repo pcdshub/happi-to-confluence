@@ -16,7 +16,7 @@ for all instances.
 ** WAIT! **
 
 -->]]>
-</ac:plain-text-body>
+  </ac:plain-text-body>
 </ac:structured-macro>
 
 <h1>Table of Contents</h1>
@@ -89,7 +89,7 @@ for all instances.
   </ac:structured-macro>
 </p>
 
-<h2>Happi Information</h2>
+<h3>Happi Information</h3>
 
 This information is stored in the happi database.  It is used to create this Python device.
 
@@ -113,7 +113,7 @@ This information is stored in the happi database.  It is used to create this Pyt
     </table>
 
 {% if relevant_pvs_by_kind %}
-  <h2>Relevant PVs</h2>
+  <h3>Relevant PVs</h3>
 
   These PVs are used by the device.  PVs may be recorded in the EPICS Archive Appliance.
   Click any PV to see its history according to the archiver.

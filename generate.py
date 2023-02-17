@@ -149,6 +149,8 @@ MATCHING_NAME_AND_CLASS_HIERARCHY: PageHierarchy = {
 # with the following.  These go at the documentation root.
 VIEWS: PageHierarchy = {
     NamedTemplate("all_devices.template"): {
+        NamedTemplate("all_devices_by_hutch.template"): {
+        }
     },
 }
 
@@ -355,6 +357,37 @@ def get_per_item_render_kwargs(client, happi_item_name, happi_item, state):
     )
 
 
+def split_by_key(
+    states,
+    key: str,
+    sort_by_key: str = "name",
+    include_none: bool = False,
+    none_category: str = "Unspecified",
+):
+    results = {}
+    for _, md in states.items():
+        try:
+            happi_md = md["happi_item"]
+        except KeyError:
+            # May be _related_pages or something
+            continue
+
+        section = happi_md.get(key, None)
+        if section is None:
+            if not include_none:
+                continue
+            section = none_category
+        results.setdefault(section, []).append(md)
+
+    def sorter(item):
+        return item["happi_item"].get(sort_by_key, "Unknown")
+
+    for section, items in results.items():
+        items.sort(key=sorter)
+
+    return results
+
+
 def get_view_render_kwargs(view, view_state, all_item_state):
     """
     Get aggregate view render keyword arguments.
@@ -370,6 +403,7 @@ def get_view_render_kwargs(view, view_state, all_item_state):
     return dict(
         identifier=view.filename,
         all_item_state=all_item_state,
+        all_item_state_by_beamline=split_by_key(all_item_state, key="beamline"),
         view_state=view_state,
         root_page=DOCUMENTATION_ROOT_TITLE,
         page_title_marker=PAGE_TITLE_MARKER,

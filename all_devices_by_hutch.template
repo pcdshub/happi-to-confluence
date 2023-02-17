@@ -1,4 +1,4 @@
-# title: {{ root_page }}
+# title: Happi Devices by Hutch
 # label: auto-generated
 
 <ac:structured-macro ac:name="html" ac:schema-version="1">
@@ -51,45 +51,50 @@ Make notes on each device in its corresponding "Notes" section.
   POC or reach out to #pcds-help on Slack.
 </p>
 
-<h2>Happi Devices</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Device Name</th>
-                <th>Class</th>
-                <th>Z</th>
-            </tr>
-        </thead>
-        <tbody>
-{% for item_name, info in all_item_state.items() | sort%}
-{% if not item_name.startswith("_") %}
-        <tr>
-            <td>
-              <a href="/pages/viewpage.action?pageId={{ info["device.template"]["id"] }}">
-                {{ info["device.template"]["title"] }}
-              </a>
+<h2>Hutches / Beamlines</h2>
 
-              -
+{% for beamline in all_item_state_by_beamline | sort %}
 
-              (
-              <a href="/pages/editpage.action?pageId={{ info["user.template"]["id"] }}">
-                Edit
-              </a>
-              )
+  <h3>{{ beamline }}</h3>
 
-            </td>
-            <td>
-    {% if "class.template" in info %}
-            <a href="/pages/viewpage.action?pageId={{ info["class.template"]["id"] }}">
-              {{ info["class.template"]["title"] }}
+  <table>
+      <thead>
+          <tr>
+              <th>Device Name</th>
+              <th>Class</th>
+              <th>Z</th>
+          </tr>
+      </thead>
+      <tbody>
+  {% for info in all_item_state_by_beamline[beamline] %}
+      <tr>
+          <td>
+            <a href="/pages/viewpage.action?pageId={{ info["device.template"]["id"] }}">
+              {{ info["device.template"]["title"] }}
             </a>
-    {% endif %}
-            </td>
-            <td>
-                {{ info.happi_item.z }}
-            </td>
-        </tr>
-{% endif %}
-{% endfor %}
+
+            -
+
+            (
+            <a href="/pages/editpage.action?pageId={{ info["user.template"]["id"] }}">
+              Edit
+            </a>
+            )
+
+          </td>
+          <td>
+  {% if "class.template" in info %}
+          <a href="/pages/viewpage.action?pageId={{ info["class.template"]["id"] }}">
+            {{ info["class.template"]["title"] }}
+          </a>
+  {% endif %}
+          </td>
+          <td>
+              {{ info.happi_item.z }}
+          </td>
+      </tr>
+    {% endfor %}
         </tbody>
     </table>
+
+{% endfor %}
