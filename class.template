@@ -1,6 +1,7 @@
 # title: {{ device_class }}
 # title: {{ device_class }}{{ page_title_marker }}
 # label: auto-generated
+# label: no-overwrite
 
 <h4>All devices of the Python class {{device_class}}</h4>
 <p>
