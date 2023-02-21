@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import pathlib
+import sys
 from typing import List, Optional, Tuple
 
 import jinja2
@@ -22,15 +23,6 @@ logging.basicConfig(level="INFO")
 logger = logging.getLogger(__name__)
 logger.setLevel("DEBUG")
 
-production = True
-
-if production:
-    SPACE = "PCDS"
-    DOCUMENTATION_ROOT_TITLE = "Happi Devices"
-else:
-    SPACE = "~klauer"
-    DOCUMENTATION_ROOT_TITLE = "Typhos Documentation Root"
-
 CONFLUENCE_URL = (
     os.environ.get("CONFLUENCE_URL", "") or
     "https://confluence.slac.stanford.edu"
@@ -46,7 +38,7 @@ RELATED_TITLE_SKIPS = (
 HAPPI_TO_CONFLUENCE_LABEL = "happi-to-confluence"
 NO_OVERWRITE_LABEL = "no-overwrite"
 SOURCE_PATH = pathlib.Path("source")
-
+DIFF_IGNORE_CONFLUENCE_TAGS = True
 
 PageHierarchy = dict
 # TODO: annotation needs some work
@@ -157,6 +149,8 @@ MATCHING_NAME_AND_CLASS_HIERARCHY: PageHierarchy = {
 # with the following.  These go at the documentation root.
 VIEWS: PageHierarchy = {
     NamedTemplate("all_devices.template"): {
+        NamedTemplate("all_devices_by_hutch.template"): {
+        }
     },
 }
 
@@ -363,6 +357,37 @@ def get_per_item_render_kwargs(client, happi_item_name, happi_item, state):
     )
 
 
+def split_by_key(
+    states,
+    key: str,
+    sort_by_key: str = "name",
+    include_none: bool = False,
+    none_category: str = "Unspecified",
+):
+    results = {}
+    for _, md in states.items():
+        try:
+            happi_md = md["happi_item"]
+        except KeyError:
+            # May be _related_pages or something
+            continue
+
+        section = happi_md.get(key, None)
+        if section is None:
+            if not include_none:
+                continue
+            section = none_category
+        results.setdefault(section, []).append(md)
+
+    def sorter(item):
+        return item["happi_item"].get(sort_by_key, "Unknown")
+
+    for section, items in results.items():
+        items.sort(key=sorter)
+
+    return results
+
+
 def get_view_render_kwargs(view, view_state, all_item_state):
     """
     Get aggregate view render keyword arguments.
@@ -378,6 +403,7 @@ def get_view_render_kwargs(view, view_state, all_item_state):
     return dict(
         identifier=view.filename,
         all_item_state=all_item_state,
+        all_item_state_by_beamline=split_by_key(all_item_state, key="beamline"),
         view_state=view_state,
         root_page=DOCUMENTATION_ROOT_TITLE,
         page_title_marker=PAGE_TITLE_MARKER,
@@ -385,13 +411,48 @@ def get_view_render_kwargs(view, view_state, all_item_state):
     )
 
 
+def check_diff(
+    existing_source: str,
+    new_source: str,
+    page_diff: str,
+) -> bool:
+    if existing_source == new_source:
+        return True
+
+    for line in page_diff.splitlines():
+        if line.startswith("! "):
+            line = line.lstrip("!").strip()
+            # <ac:..> confluence tags may be ignored
+            ac_like = any(
+                (
+                    line.startswith("<ac:"),
+                    line.startswith("</ac:"),
+                )
+            )
+            if ac_like:
+                if not DIFF_IGNORE_CONFLUENCE_TAGS:
+                    return False
+            else:
+                return False
+        elif line.startswith("+ ") or line.startswith("- "):
+            line = line.lstrip("+- \t").strip()
+            # White-space changes are bad
+            if line.strip():
+                return False
+
+    return True
+
+
 def diff_pages(
-    dest_path: pathlib.Path, title: str, existing_source: str, new_source: str
-):
+    dest_path: pathlib.Path,
+    title: str,
+    existing_source: str,
+    new_source: str,
+) -> str:
     """Write status diff information to ``dest_path``."""
-    existing_path = SOURCE_PATH / "existing"
-    new_path = SOURCE_PATH / "new"
-    diff_path = SOURCE_PATH / "diff"
+    existing_path = dest_path / "existing"
+    new_path = dest_path / "new"
+    diff_path = dest_path / "diff"
     for path in [existing_path, new_path, diff_path]:
         try:
             path.mkdir(parents=True, exist_ok=True)
@@ -410,16 +471,19 @@ def diff_pages(
         fromfile=title,
         tofile=f"new-{title}"
     )
-    htmldiff = difflib.HtmlDiff().make_file(
+    html_formatted_diff = difflib.HtmlDiff().make_file(
         existing_source.splitlines(True),
         new_source.splitlines(True),
         title,
         f"new-{title}"
     )
+
+    diff_string = "".join(diff)
     with open(diff_path / f"{title}.html.diff", "wt") as fp:
-        print("".join(diff), file=fp)
+        print(diff_string, file=fp)
     with open(diff_path / f"{title}.html", "wt") as fp:
-        print(htmldiff, file=fp)
+        print(html_formatted_diff, file=fp)
+    return diff_string
 
 
 def render_pages(
@@ -496,23 +560,24 @@ def render_pages(
                 existing_page["body"]["storage"]["value"]
                 if existing_page else ""
             )
-            if existing_page and existing_source == new_source:
+            try:
+                page_diff = diff_pages(
+                    dest_path=SOURCE_PATH,
+                    title=title,
+                    existing_source=existing_source,
+                    new_source=new_source,
+                )
+            except Exception as ex:
+                page_diff = "! diff failure"
+                logger.error(
+                    "Failed to diff existing pages: %s",
+                    ex, exc_info=True
+                )
+
+            if existing_page and check_diff(existing_source, new_source, page_diff):
                 print("Existing page is up-to-date. Great!")
                 page_info = existing_page
             else:
-                try:
-                    diff_pages(
-                        dest_path=SOURCE_PATH,
-                        title=title,
-                        existing_source=existing_source,
-                        new_source=new_source,
-                    )
-                except Exception as ex:
-                    logger.error(
-                        "Failed to diff existing pages: %s",
-                        ex, exc_info=True
-                    )
-
                 if existing_page and existing_page["id"] == parent_id:
                     # Special-case for updating the root document;
                     # parent_id is set to DOC_ROOT and we may want to update
@@ -599,6 +664,7 @@ def render_device_pages(
     client: Confluence,
     root_page,
     happi_info_filename: str = "happi_info.json",
+    testing: bool = False,
 ) -> dict:
     """
     Render all individual device pages.
@@ -634,19 +700,25 @@ def render_device_pages(
         happi_info = json.load(fp)
 
     # Keys for the happi plugin are the happi item names
-    for idx, (happi_name, happi_item) in enumerate(
-        happi_info["metadata_by_key"].items()
-    ):
+    md_by_key = happi_info["metadata_by_key"]
+    for idx, (happi_name, happi_item) in enumerate(md_by_key.items(), 1):
+        logger.info("")
+        logger.info(f"Working on device {idx} of {len(md_by_key)}: {happi_name}...")
+        if not happi_item.get("device_class", None):
+            continue
+
         render_kw = get_per_item_render_kwargs(
             client, happi_name, happi_item, state=state
         )
 
-        if happi_name.lower() == render_kw["device_class"].lower():
+        if happi_name.lower() == str(render_kw["device_class"]).lower():
             # In cases of devices like AT1K4, its class and happi name are
             # the same; so we can't make it a subpage.. hmm
             to_render = MATCHING_NAME_AND_CLASS_HIERARCHY
+            state[happi_name]["has_class_page"] = False
         else:
             to_render = PER_DEVICE_HIERARCHY
+            state[happi_name]["has_class_page"] = True
 
         render_pages(
             client=client,
@@ -662,6 +734,9 @@ def render_device_pages(
             ),
         )
         state[happi_name]["happi_item"] = happi_item
+
+        if testing and idx > 10:
+            break
 
     return state
 
@@ -700,14 +775,35 @@ def render_view_pages(space: str, client: Confluence, root_page, state):
     return view_state
 
 
-def main(space: str, root_title: str):
+def main(space: str, root_title: str, testing: bool = False):
     client, root_page = initialize_client(space=space, root_title=root_title)
-    all_item_state = render_device_pages(space=space, client=client, root_page=root_page)
+    all_item_state = render_device_pages(space=space, client=client, root_page=root_page, testing=testing)
     view_state = render_view_pages(space=space, client=client, root_page=root_page, state=all_item_state)
     return all_item_state, view_state
 
 
 if __name__ == "__main__":
+    testing = "--test" in sys.argv
+    if "--production" in sys.argv:
+        SPACE = "PCDS"
+        DOCUMENTATION_ROOT_TITLE = "Happi Devices"
+    else:
+        SPACE = "~klauer"
+        DOCUMENTATION_ROOT_TITLE = "Typhos Documentation Root"
+
+    print(
+        f"Writing to space '{SPACE}' page '{DOCUMENTATION_ROOT_TITLE}'.\n"
+        f"Single page test mode enable status: {testing}.\n"
+        f"Ctrl-C now to cancel, or press enter to continue\n"
+    )
+    try:
+        # input()   # TODO
+        ...
+    except KeyboardInterrupt:
+        sys.exit(0)
+
     all_item_state, view_state = main(
-        space=SPACE, root_title=DOCUMENTATION_ROOT_TITLE
-    )  # noqa
+        space=SPACE,
+        root_title=DOCUMENTATION_ROOT_TITLE,
+        testing=testing,
+    )  # noqa: F401

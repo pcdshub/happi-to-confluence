@@ -1,7 +1,11 @@
 # title: {{ happi_item.name }} docstring
 {%- for section, section_items in sections.items() %}
     {%- if section_items %}
-        <h3>{{ section }}</h3>
+        {% if section == "Parameters" %}
+          <h3>Python class initialization parameters</h3>
+        {% elif section != "Summary" and section != "Extended Summary" %}
+          <h3>{{ section }}</h3>
+        {% endif %}
         {%- if section == "Parameters" or section == "Attributes" %}
             <table>
                 <thead>

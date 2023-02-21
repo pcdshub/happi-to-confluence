@@ -10,32 +10,86 @@ Please don't edit this page. This page is auto-generated and may be frequently
 overwritten - your changes will NOT persist.
 
 The Notes page linked below is your spot for notes about this device.
+You may also edit the class page {{ device_class }} to document information
+for all instances.
 
 ** WAIT! **
 
--->]]></ac:plain-text-body>
+-->]]>
+  </ac:plain-text-body>
 </ac:structured-macro>
 
+<h1>Table of Contents</h1>
+<ac:structured-macro ac:name="toc" ac:schema-version="1">
+  <ac:parameter ac:name="minLevel">2</ac:parameter>
+  <ac:parameter ac:name="outline">true</ac:parameter>
+</ac:structured-macro>
+
+<h2>Information from the source code</h2>
+<p>
+  <i>
+  Additional usage information about this device may be available on the
+    <a href="https://pcdshub.github.io/pcdsdevices/master/search.html?q={{device_class}}" target="_blank">
+      pcdsdevices documentation site.
+    </a>
+  </i>
+</p>
+
+<br/>
+
+<div title="Python documentation string from pcdsdevices">
 {{ device_class_doc }}
+</div>
+
+{% if "class.template" in item_state %}
+{% set class_template = item_state["class.template"] %}
+
+<h2>Notes from the class page</h2>
+<p>
+  →
+  Please
+  <a href="/pages/editpage.action?pageId={{ class_template["id"] }}">
+    <b>EDIT CLASS INFORMATION HERE</b>
+  </a>
+  ←
+</p>
+
 <p>
   <ac:structured-macro ac:name="include" ac:schema-version="1">
     <ac:parameter ac:name="">
       <ac:link>
-        <ri:page ri:content-title="{{ page_title_prefix }}{{ device_name }}{{ user_page_suffix }}"/>
+        <ri:page ri:content-title="{{ item_state["class.template"]["title"] }}"/>
+      </ac:link>
+    </ac:parameter>
+  </ac:structured-macro>
+</p>
+{% endif %}
+
+<h2>Notes about this specific device {{ device_name }}</h2>
+
+<p>
+  →
+  Please
+  <b>
+    <ac:link>
+      <ri:page ri:content-title="{{ device_name }}{{ user_page_suffix }}"/>
+      <ac:plain-text-link-body><![CDATA[EDIT NOTES FOR THIS SPECIFIC DEVICE HERE]]></ac:plain-text-link-body>
+    </ac:link>
+  </b>
+  ←
+</p>
+
+<p>
+  <ac:structured-macro ac:name="include" ac:schema-version="1">
+    <ac:parameter ac:name="">
+      <ac:link>
+        <ri:page ri:content-title="{{ device_name }}{{ user_page_suffix }}"/>
       </ac:link>
     </ac:parameter>
   </ac:structured-macro>
 </p>
 
-<h2>API Documentation</h2>
-
-<p>Additional usage information about this device may be available on the
-  <a href="https://pcdshub.github.io/pcdsdevices/master/search.html?q={{device_class}}" target="_blank">
-    pcdsdevices documentation site.
-  </a>
-</p>
-
-<h2>Happi Information</h2>
+<h3>Happi Information</h3>
 
 This information is stored in the happi database.  It is used to create this Python device.
 
@@ -59,7 +113,7 @@ This information is stored in the happi database.  It is used to create this Pyt
     </table>
 
 {% if relevant_pvs_by_kind %}
-  <h2>Relevant PVs</h2>
+  <h3>Relevant PVs</h3>
 
   These PVs are used by the device.  PVs may be recorded in the EPICS Archive Appliance.
   Click any PV to see its history according to the archiver.
@@ -112,18 +166,30 @@ The following Jira tickets may be relevant for {{ device_name }}:
 <h2>How do I change this?</h2>
 
 <p>
-  This page is not intended to be modified and will be overwritten without notice.
+  This page is not intended to be modified and <b>will be overwritten without notice</b>.
   However, the notes page is free for you to edit and add notes about {{ device_name }}.
   Those notes will be automatically included in the device information page.
 </p>
 
-<p>If you have something to add of use to others regarding this device, please edit
+<p>
+  If you have something to add of use to others regarding this specific device, please edit
   <ac:link>
-    <ri:page ri:content-title="{{ page_title_prefix }}{{ device_name }}{{ user_page_suffix }}"/>
+    <ri:page ri:content-title="{{ device_name }}{{ user_page_suffix }}"/>
     <ac:plain-text-link-body><![CDATA[this page]]></ac:plain-text-link-body>
   </ac:link>
   .
 </p>
+
+{% if "class.template" in item_state %}
+<p>
+  You may also edit the class page {{ device_class }} to document information
+  for all similar instances.
+  <a href="/pages/editpage.action?pageId={{ class_template["id"] }}">
+    Click here to edit the class page.
+  </a>
+</p>
+{% endif %}
+
 <p>
   If you find an issue with the data in the happi database, please contact your POC
   or reach out to #pcds-help on Slack.

@@ -1,4 +1,4 @@
-# title: {{ root_page }}
+# title: Happi Devices by Hutch
 # label: auto-generated
 
 <ac:structured-macro ac:name="html" ac:schema-version="1">
@@ -51,18 +51,22 @@ Make notes on each device in its corresponding "Notes" section.
   POC or reach out to #pcds-help on Slack.
 </p>
 
-<h2>Happi Devices</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Device Name</th>
-                <th>Class</th>
-                <th>Z</th>
-            </tr>
-        </thead>
-        <tbody>
-{% for item_name, info in all_item_state.items() | sort%}
-  {% if not item_name.startswith("_") %}
+<h2>Hutches / Beamlines</h2>
+
+{% for beamline in all_item_state_by_beamline | sort %}
+
+  <h3>{{ beamline }}</h3>
+
+  <table>
+      <thead>
+          <tr>
+              <th>Device Name</th>
+              <th>Class</th>
+              <th>Z</th>
+          </tr>
+      </thead>
+      <tbody>
+  {% for info in all_item_state_by_beamline[beamline] %}
       <tr>
           <td>
             {{ info["device.template"]["title"] }}
@@ -90,7 +94,8 @@ Make notes on each device in its corresponding "Notes" section.
               {{ info.happi_item.z }}
           </td>
       </tr>
-  {% endif %}
-{% endfor %}
+    {% endfor %}
         </tbody>
     </table>
+
+{% endfor %}
