@@ -1,4 +1,4 @@
-GENERATE_ARGS ?= --test
+GENERATE_ARGS ?=
 
 all: prod-pages
 
