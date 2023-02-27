@@ -105,7 +105,7 @@ This information is stored in the happi database.  It is used to create this Pyt
     {% if key not in ("_whatrecord", ) and value %}
             <tr>
                 <td>{{ key | e }}</td>
-                <td>{{ value | e }}</td>
+                <td>{{ value | e | replace("&#39;", "'") }}</td>
             </tr>
     {% endif %}
 {% endfor %}

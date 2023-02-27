@@ -425,8 +425,14 @@ def check_diff(
             # <ac:..> confluence tags may be ignored
             ac_like = any(
                 (
+                    # Confluence "ac" tags - guessing "atlassian confluence":
                     line.startswith("<ac:"),
                     line.startswith("</ac:"),
+                    # Confluence "resource identifier" tags:
+                    line.startswith("<ri:"),
+                    line.startswith("</ri:"),
+                    # TODO: specific to our source, false matches would be bad
+                    line.startswith("-->]]>"),
                 )
             )
             if ac_like:
