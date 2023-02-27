@@ -35,7 +35,7 @@ for all instances.
   </i>
 </p>
 
-<br/>
+<br />
 
 <div title="Python documentation string from pcdsdevices">
 {{ device_class_doc }}
@@ -46,19 +46,19 @@ for all instances.
 
 <h2>Notes from the class page</h2>
 <p>
-  →
+  &rarr;
   Please
   <a href="/pages/editpage.action?pageId={{ class_template["id"] }}">
     <b>EDIT CLASS INFORMATION HERE</b>
   </a>
-  ←
+  &larr;
 </p>
 
 <p>
   <ac:structured-macro ac:name="include" ac:schema-version="1">
     <ac:parameter ac:name="">
       <ac:link>
-        <ri:page ri:content-title="{{ item_state["class.template"]["title"] }}"/>
+        <ri:page ri:content-title="{{ item_state["class.template"]["title"] }}" />
       </ac:link>
     </ac:parameter>
   </ac:structured-macro>
@@ -68,22 +68,22 @@ for all instances.
 <h2>Notes about this specific device {{ device_name }}</h2>
 
 <p>
-  →
+  &rarr;
   Please
   <b>
     <ac:link>
-      <ri:page ri:content-title="{{ device_name }}{{ user_page_suffix }}"/>
+      <ri:page ri:content-title="{{ device_name }}{{ user_page_suffix }}" />
       <ac:plain-text-link-body><![CDATA[EDIT NOTES FOR THIS SPECIFIC DEVICE HERE]]></ac:plain-text-link-body>
     </ac:link>
   </b>
-  ←
+  &larr;
 </p>
 
 <p>
   <ac:structured-macro ac:name="include" ac:schema-version="1">
     <ac:parameter ac:name="">
       <ac:link>
-        <ri:page ri:content-title="{{ device_name }}{{ user_page_suffix }}"/>
+        <ri:page ri:content-title="{{ device_name }}{{ user_page_suffix }}" />
       </ac:link>
     </ac:parameter>
   </ac:structured-macro>
@@ -174,7 +174,7 @@ The following Jira tickets may be relevant for {{ device_name }}:
 <p>
   If you have something to add of use to others regarding this specific device, please edit
   <ac:link>
-    <ri:page ri:content-title="{{ device_name }}{{ user_page_suffix }}"/>
+    <ri:page ri:content-title="{{ device_name }}{{ user_page_suffix }}" />
     <ac:plain-text-link-body><![CDATA[this page]]></ac:plain-text-link-body>
   </ac:link>
   .

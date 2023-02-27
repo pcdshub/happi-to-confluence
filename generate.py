@@ -431,13 +431,16 @@ def check_diff(
             )
             if ac_like:
                 if not DIFF_IGNORE_CONFLUENCE_TAGS:
+                    logger.info("Difference found in confluence tag line: %s", line)
                     return False
             else:
+                logger.info("Difference found in line: %s", line)
                 return False
         elif line.startswith("+ ") or line.startswith("- "):
             line = line.lstrip("+- \t").strip()
-            # White-space changes are bad
+            # Look for non-white-space changes
             if line.strip():
+                logger.info("Non-whitespace changes found; pages differ: %s", line)
                 return False
 
     return True
