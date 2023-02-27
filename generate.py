@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import difflib
+import html
 import inspect
 import json
 import logging
@@ -48,6 +49,24 @@ PageHierarchy = dict
 # ]
 
 
+def confluence_escape(value: Optional[str]) -> str:
+    """Escape ``value`` in a way that Confluence won't rewrite it."""
+    if value is None:
+        return ""
+
+    escaped = str(jinja2.filters.escape(value))
+    # Double quotes are not escaped:
+    escaped = escaped.replace("&quot;", '"')
+    # Single quotes are not escaped:
+    escaped = escaped.replace("&#39;", "'")
+    return escaped
+
+
+JINJA_FILTERS = [
+    confluence_escape,
+]
+
+
 class NamedTemplate:
     """
     A jinja template that contains a title and some additional information.
@@ -73,6 +92,8 @@ class NamedTemplate:
         self.labels = list(sorted(set(info["labels"]) | {HAPPI_TO_CONFLUENCE_LABEL}))
         self.titles = [jinja2.Template(title) for title in info["title_lines"]]
         self.template = jinja2.Template(contents)
+        for func in JINJA_FILTERS:
+            self.template.environment.filters[func.__name__] = func
 
         if not self.titles:
             raise ValueError(f"Template invalid: {fn} has no filename lines")
@@ -419,25 +440,47 @@ def check_diff(
     if existing_source == new_source:
         return True
 
+    try:
+        # Unescape both or none
+        (existing_source, new_source) = (
+            html.unescape(existing_source),
+            html.unescape(new_source),
+        )
+    except Exception:
+        ...
+
     for line in page_diff.splitlines():
         if line.startswith("! "):
             line = line.lstrip("!").strip()
             # <ac:..> confluence tags may be ignored
             ac_like = any(
                 (
+                    # Confluence "ac" tags - guessing "atlassian confluence":
                     line.startswith("<ac:"),
                     line.startswith("</ac:"),
+                    # Confluence "resource identifier" tags:
+                    line.startswith("<ri:"),
+                    line.startswith("</ri:"),
+                    # TODO: specific to our source, false matches would be bad
+                    line.startswith("-->]]>"),
                 )
             )
             if ac_like:
                 if not DIFF_IGNORE_CONFLUENCE_TAGS:
+                    logger.info("Difference found in confluence tag line: %s", line)
                     return False
+            elif not line:
+                # Blank line
+                ...
             else:
+                logger.info("Difference found in line: %s", line)
                 return False
         elif line.startswith("+ ") or line.startswith("- "):
             line = line.lstrip("+- \t").strip()
-            # White-space changes are bad
-            if line.strip():
+            if not line:
+                ...
+            else:
+                logger.info("Non-whitespace changes found; pages differ: %s", line)
                 return False
 
     return True
@@ -528,6 +571,7 @@ def render_pages(
         options = children.get("_options", {})
         titles, new_source = page_template.render(**render_kw)
         existing_page = None
+        existing_labels = {}
         for title in titles:
             existing_page: Optional[dict] = client.get_page_by_title(
                 title=title,
@@ -535,15 +579,15 @@ def render_pages(
                 expand="body.storage",
             )
             if existing_page:
-                labels = get_page_labels(client, existing_page["id"])
-                if HAPPI_TO_CONFLUENCE_LABEL in labels:
+                existing_labels = get_page_labels(client, existing_page["id"])
+                if HAPPI_TO_CONFLUENCE_LABEL in existing_labels:
                     # OK, even if it exists, this is our page
                     logger.info("Found a page we previously generated: %s (%s)",
-                                title, list(labels))
+                                title, list(existing_labels))
                     break
             if not existing_page:
                 logger.error("Available title: %s", title)
-                labels = {}
+                existing_labels = {}
                 break
         else:
             logger.error("No available titles? %s", titles)
@@ -551,7 +595,7 @@ def render_pages(
 
         do_not_overwrite = not (
             options.get("overwrite", True) and
-            NO_OVERWRITE_LABEL not in labels
+            NO_OVERWRITE_LABEL not in existing_labels
         )
         if do_not_overwrite and existing_page:
             page_info = existing_page
@@ -575,7 +619,7 @@ def render_pages(
                 )
 
             if existing_page and check_diff(existing_source, new_source, page_diff):
-                print("Existing page is up-to-date. Great!")
+                logger.info("Existing page for %r is up-to-date. Great!", title)
                 page_info = existing_page
             else:
                 if existing_page and existing_page["id"] == parent_id:
@@ -599,8 +643,12 @@ def render_pages(
 
                     continue
 
+        page_id: int = page_info["id"]
+
         for label in page_template.labels:
-            client.set_page_label(page_info["id"], label)
+            if label not in existing_labels:
+                logger.info("Setting new label for page %r (%s): %s", title, page_id, label)
+                client.set_page_label(page_id, label)
 
         # for key, value in properties.items():
         #     # client.set_page_property(

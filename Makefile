@@ -3,7 +3,7 @@ GENERATE_ARGS ?=
 all: prod-pages
 
 clean:
-	rm -f happi_info.json
+	rm -f happi_info.json .happi_info.json
 
 check:
 	if [[ -f happi_info.json && $$(stat --format="%s" happi_info.json ) -eq 0 ]]; then \
@@ -12,7 +12,11 @@ check:
 	fi \
 
 happi_info.json: /cds/group/pcds/pyps/apps/hutch-python/device_config/db.json
-	python -m whatrecord.plugins.happi > ".${@}"
+	/bin/bash -c " \
+		rm -f ".${@}" && \
+			source /reg/g/pcds/engineering_tools/latest-released/scripts/pcds_conda && \
+			python -m whatrecord.plugins.happi > ".${@}" \
+	"
 	mv ".${@}" "$@"
 
 prod-pages: check happi_info.json
