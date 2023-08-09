@@ -1,23 +1,6 @@
 # title: {{ device_name }}
 # title: {{ device_name }}{{ page_title_marker}}
 # label: auto-generated
-<ac:structured-macro ac:name="html" ac:schema-version="1">
-  <ac:plain-text-body><![CDATA[<!--
-
-** WAIT! **
-
-Please don't edit this page. This page is auto-generated and may be frequently
-overwritten - your changes will NOT persist.
-
-The Notes page linked below is your spot for notes about this device.
-You may also edit the class page {{ device_class }} to document information
-for all instances.
-
-** WAIT! **
-
--->]]>
-  </ac:plain-text-body>
-</ac:structured-macro>
 
 <h1>Table of Contents</h1>
 <ac:structured-macro ac:name="toc" ac:schema-version="1">
